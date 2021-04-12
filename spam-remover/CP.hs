@@ -10,6 +10,7 @@ import qualified Foreign.Ptr as Ptr
 import qualified Foreign.Marshal.Alloc as Alloc
 import qualified Foreign.Marshal.Utils as Utils
 import qualified Foreign.Storable as Storable
+import qualified Foreign.C.String as CString
 import qualified System.Process as Proc
 import Control.Exception
 import Prelude hiding (log)
@@ -17,6 +18,9 @@ import Prelude hiding (log)
 import Common
 
 type Stdio = (Handle, Handle, Handle)
+
+auxStrLen :: Int
+auxStrLen = 2 ^ 16
 
 execSync :: Maybe String -> String -> [String] -> Maybe String ->
   IO (Maybe (Integer, String, String))
@@ -79,7 +83,7 @@ waitForProcess proc stdoutR stderrR stdout stderr = do
       stdout <- readAllBytesFromHandle stdoutR stdout
       stderr <- readAllBytesFromHandle stderrR stderr
 
-      return (exitCode, reverse stdout, reverse stderr)
+      return (exitCode, stdout, stderr)
     ) (waitForProcess proc stdoutR stderrR stdout stderr)
 
 readAllBytesFromHandle :: Handle -> String -> IO String
@@ -95,13 +99,12 @@ readByteFromHandle :: Handle -> String -> IO String
 readByteFromHandle handle str = do
   ready <- isHandleReady handle
 
-  str <- ite ready (do
-      charPtr <- Utils.new '\x00'
-      bytesRead <- hGetBufNonBlocking handle charPtr 1
-      char <- Storable.peek charPtr
-      Alloc.free charPtr
+  str <- ite ready (
+      Alloc.allocaBytes auxStrLen (\ptr -> do
+        bytesRead <- hGetBufNonBlocking handle ptr auxStrLen
+        chunk <- CString.peekCString ptr
 
-      return $ ite (bytesRead == 1) (char:str) str
+        return $ str ++ take bytesRead chunk)
     ) (pure str)
 
   return str
