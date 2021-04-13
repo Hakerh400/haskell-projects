@@ -12,14 +12,14 @@ zero = mu f where
 one = mu f where
   f a = (a <= a) <= a
 
-impl = mu f where
-  f a b c = (a <= b) <= c
-
 not = mu f where
   f a b = (a <= zero) <= b
 
+impl = mu f where
+  f a b c = (a <= b) <= c
+
 (||) = mu f where
-  f a b c = c == impl (not a) b
+  f a b c = c == (not a `impl` b)
 
 (&&) = mu f where
   f a b c = a <= (b <= c)
@@ -36,4 +36,23 @@ not = mu f where
 inc = mu f where
   f a b = a < b
 
-export = inc (inc (inc zero))
+dec = mu f where
+  f a b = a == inc b
+
+(+) = mu f where
+  f a b c =
+    ((b == zero) `impl` (c == a)) &&
+    ((b /= zero) `impl` (c == inc (a + dec b)))
+
+(-) = mu f where
+  f a b c = (c + b) == a
+
+(*) = mu f where
+  f a b c =
+    ((b == zero) `impl` (c == zero)) &&
+    ((b /= zero) `impl` (c == (a + (a * dec b))))
+
+(/) = mu f where
+  f a b c = (c * b) == a
+
+export = (int2nat 6) / (int2nat 3)
