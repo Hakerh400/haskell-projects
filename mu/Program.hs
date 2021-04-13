@@ -19,7 +19,7 @@ impl = mu f where
   f a b c = (a <= b) <= c
 
 (||) = mu f where
-  f a b c = c == (not a `impl` b)
+  f a b c = (not a `impl` b) <= c
 
 (&&) = mu f where
   f a b c = a <= (b <= c)
@@ -37,7 +37,7 @@ inc = mu f where
   f a b = a < b
 
 dec = mu f where
-  f a b = a == inc b
+  f a b = inc b == a
 
 (+) = mu f where
   f a b c =
