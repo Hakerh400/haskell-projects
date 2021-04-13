@@ -1,18 +1,26 @@
 import Prelude hiding (log)
 import Data.List
+import System.Environment as Env
 
 import qualified CP
 import Log
 
+prog :: String
+prog = "unrar"
+
 main :: IO ()
 main = do
+  args <- Env.getArgs
+
   (exitCode, stdout, stderr) <- execSync
     Nothing
-    "C:/Program Files/WinRAR/Rar.exe"
-    []
+    (prog ++ "1")
+    args
     Nothing
 
-  log(intercalate "\n\n" $ filter (not . ("\x43\x6F\x70\x79\x72\x69\x67\x68\x74" `isInfixOf`)) $ sanll stdout)
+  log(("\n" ++) $ intercalate "\n\n" $
+    filter (not . ("\x43\x6F\x70\x79\x72\x69\x67\x68\x74" `isInfixOf`)) $
+      sanll stdout)
 
   return ()
 
