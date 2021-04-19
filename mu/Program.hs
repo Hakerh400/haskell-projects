@@ -40,7 +40,9 @@ dec = mu f where
   f a b = inc b == a
 
 (+) = mu f where
-  f a b c = (not ((a == zero) && (b <= c))) <= (inc (a == zero) <= (one <= ((dec a + inc b) <= c)))
+  f a b c =
+    ((b == zero) `impl` (c == a)) &&
+    ((b /= zero) `impl` (c == inc (a + dec b)))
 
 (-) = mu f where
   f a b c = (c + b) == a
@@ -53,4 +55,4 @@ dec = mu f where
 (/) = mu f where
   f a b c = (c * b) == a
 
-export = (int2nat 1) + (int2nat 1)
+export = (int2nat 6) / (int2nat 3)
