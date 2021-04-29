@@ -1,29 +1,64 @@
-import qualified Data.Set as Set
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-import System
+import Data.List
 
 main :: IO ()
-main = do
-  let aa = Impl a' a'
+main = print (proofEqInherit (2 :: Integer) 2)
 
-  let step_1 = axProp1 a' a'
-  let step_2 = axProp1 a' aa
-  let step_3 = axProp2 a' aa a'
-  let step_4 = ruleMp step_3 step_2
-  let step_5 = ruleMp step_4 step_1
+----------------------------------------------------------------------------------------------------
 
-  let step_6 = axProp1 b' b'
-  let x = proof2pred step_5
-  let y = proof2pred step_6
+class Exa a where
+  exaT :: a -> String
+  exa :: a -> String
 
-  let step_7 = axProp1 x y
-  let step_8 = ruleMp step_7 step_5
-  let step_9 = ruleUniIntr a'p a'p x step_8
-  let step_10 = ruleMp step_9 step_6
+instance Exa Integer where
+  exaT _ = "Integer"
+  exa a = show a
 
-  print $ step_10
+----------------------------------------------------------------------------------------------------
 
-  return ()
+data Pred :: * where
+  Equals :: (Exa a) => a -> a -> Pred
+  Not :: Pred -> Pred
+  Impl :: Pred -> Pred -> Pred
+  Or :: Pred -> Pred -> Pred
+  And :: Pred -> Pred -> Pred
+  Forall :: Pred -> Pred -> Pred
 
-ite :: Bool -> a -> a -> a
-ite a b c = if a then b else c
+instance Exa Pred where
+  exaT _ = "Pred"
+  exa (Equals a b) = exaOp "=" a b
+  exa (Not a) = "~" ++ exa a
+  exa (Impl a b) = exaOp "->" a b
+  exa (Or a b) = exaOp "||" a b
+  exa (And a b) = exaOp "&&" a b
+
+instance Show Pred where
+  show = exa
+
+----------------------------------------------------------------------------------------------------
+
+data Proof = Proof Pred
+
+instance Exa Proof where
+  exaT _ = "Proof"
+  exa (Proof a) = "|- " ++ exa a
+
+instance Show Proof where
+  show = exa
+
+proofEqInherit :: (Exa a, Eq a) => a -> a -> Proof
+proofEqInherit a b = if a == b
+  then Proof (Equals a b)
+  else error $ concat ["Value ", sf a, " is not equal to ", sf b]
+
+----------------------------------------------------------------------------------------------------
+
+exaOp :: (Exa a, Exa b) => String -> a -> b -> String
+exaOp op a b = concat ["(", exa a, " ", op, " ", exa b, ")"]
+
+sf :: (Exa a) => a -> String
+sf a = "\"" ++ exa a ++ "\""
