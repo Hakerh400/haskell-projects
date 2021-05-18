@@ -11,11 +11,11 @@ main = do
 func :: [a] -> Integer -> [[a]]
 func list n = nest (list >>=) n
 
-nest :: ((a -> [[a]]) -> [[a]]) -> Integer -> [[a]]
-nest f 1 = f (\a -> [[a]])
-nest f 2 = f (\a -> f (\b -> [[a, b]]))
-nest f 3 = f (\a -> f (\b -> f (\c -> [[a, b, c]])))
-nest f 4 = f (\a -> f (\b -> f (\c -> f (\d -> [[a, b, c, d]]))))
+nest :: (Monad m) => ((a -> m [a]) -> m [a]) -> Integer -> m [a]
+nest f 1 = f (\a -> return [a])
+nest f 2 = f (\a -> f (\b -> return [a, b]))
+nest f 3 = f (\a -> f (\b -> f (\c -> return [a, b, c])))
+nest f 4 = f (\a -> f (\b -> f (\c -> f (\d -> return [a, b, c, d]))))
 
 -- nest :: ((Char -> [[Char]]) -> [[Char]]) -> Integer -> [[Char]]
 -- nest f 1 = f (t                                     return                                                             (p (:) []))
