@@ -7,4 +7,6 @@ main = do
 
 func :: (forall a. a -> [a]) -> (forall a. [a] -> a) -> Integer -> a -> a
 func f g 0 a = a
-func f g n a = func f g (n - 1) (g (f a))
+func f g 1 a = g (f a)
+func f g 2 a = g (g (f (f a)))
+func f g 3 a = g (g (g (f (f (f a)))))
