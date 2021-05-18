@@ -5,20 +5,34 @@ import Control.Monad
 
 main :: IO ()
 main = do
-  putStrLn $ intercalate "\n" $ func "01" 4
+  printBlock 4
   return ()
+
+printBlock :: Integer -> IO ()
+printBlock n = printBlock' n 1
+
+printBlock' :: Integer -> Integer -> IO ()
+printBlock' n i = if i <= n
+  then do
+    putStrLn $ intercalate "\n" $ func "01" i
+    
+    if i /= n
+      then putStrLn ""
+      else return ()
+    
+    printBlock' n (i + 1)
+  else return ()
 
 func :: [a] -> Integer -> [[a]]
 func list n = nest (list >>=) n
 
-nest :: (Monad m) => ((a -> m [a]) -> m [a]) -> Integer -> m [a]
-nest f 1 = f (\a -> return [a])
-nest f 2 = f (\a -> f (\b -> return [a, b]))
-nest f 3 = f (\a -> f (\b -> f (\c -> return [a, b, c])))
-nest f 4 = f (\a -> f (\b -> f (\c -> f (\d -> return [a, b, c, d]))))
+t = (.)
+p = flip
 
--- nest :: ((Char -> [[Char]]) -> [[Char]]) -> Integer -> [[Char]]
--- nest f 1 = f (t                                     return                                                             (p (:) []))
--- nest f 2 = f (t f (t                             (t return)                                               (p (t t (:)) (p (:) []))))
--- nest f 3 = f (t f (t (t f)                 (t (t (t return))                           (p (t t (t t (:))) (p (t t (:)) (p (:) []))))))
--- nest f 4 = f (t f (t (t f) (t (t (t f)) (t (t (t (t return))) (p (t t (t t (t t (:)))) (p (t t (t t (:))) (p (t t (:)) (p (:) []))))))))
+-- a (b c) ---> t a b c
+
+nest :: (Monad m) => ((a -> m [a]) -> m [a]) -> Integer -> m [a]
+nest f 1 = t f                                                               (t return)                                                            (p (:) [])
+nest f 2 = t f (t f)                                                      (t (t return)                                               (p (t t (:)) (p (:) [])))
+nest f 3 = t (t f (t f)) (t (t f))                                     (t (t (t return))                           (p (t t (t t (:))) (p (t t (:)) (p (:) []))))
+nest f 4 = t (t (t (t f (t f))) (t (t (t f)))) (t (t (t (t (t f)))) t) (t (t (t return))) (p (t t (t t (t t (:)))) (p (t t (t t (:))) (p (t t (:)) (p (:) []))))
