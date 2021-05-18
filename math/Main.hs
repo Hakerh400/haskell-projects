@@ -81,7 +81,7 @@ showOp :: (Show a, Show b) => String -> a -> b -> String
 showOp op a b = concat ["(", show a, " ", op, " ", show b, ")"]
 
 sf :: (Exa a) => a -> String
-sf a = "\"" ++ exa a ++ "\""
+sf a = concat ["\"", exa a, "\""]
 
 getListElemType :: [a] -> a
 getListElemType = u
