@@ -32,7 +32,7 @@ p = flip
 -- a (b c) ---> t a b c
 
 nest :: (Monad m) => ((a -> m [a]) -> m [a]) -> Integer -> m [a]
-nest f 1 = t f                                                               (t return)                                                            (p (:) [])
-nest f 2 = t f (t f)                                                      (t (t return)                                               (p (t t (:)) (p (:) [])))
-nest f 3 = t (t f (t f)) (t (t f))                                     (t (t (t return))                           (p (t t (t t (:))) (p (t t (:)) (p (:) []))))
-nest f 4 = t (t (t (t f (t f))) (t (t (t f)))) (t (t (t (t (t f)))) t) (t (t (t return))) (p (t t (t t (t t (:)))) (p (t t (t t (:))) (p (t t (:)) (p (:) []))))
+nest f 1 = f (t                                     return                                                             (p (:) []))
+nest f 2 = f (t f (t                             (t return)                                               (p (t t (:)) (p (:) []))))
+nest f 3 = f (t f (t (t f)                 (t (t (t return))                           (p (t t (t t (:))) (p (t t (:)) (p (:) []))))))
+nest f 4 = f (t f (t (t f) (t (t (t f)) (t (t (t (t return))) (p (t t (t t (t t (:)))) (p (t t (t t (:))) (p (t t (:)) (p (:) [])))))))) 
