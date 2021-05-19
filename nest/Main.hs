@@ -3,11 +3,26 @@ import Control.Monad
 
 main :: IO ()
 main = do
-  print $ replm 4 "01"
+  printBlock 4
   return ()
 
-replm :: (Monad m) => Integer -> m a -> m [a]
-replm n list = nest (list >>=) n
+printBlock :: Integer -> IO ()
+printBlock n = printBlock' n 1
+
+printBlock' :: Integer -> Integer -> IO ()
+printBlock' n i = if i <= n
+  then do
+    putStrLn $ intercalate "\n" $ func "01" i
+    
+    if i /= n
+      then putStrLn ""
+      else return ()
+    
+    printBlock' n (i + 1)
+  else return ()
+
+func :: [a] -> Integer -> [[a]]
+func list n = nest (list >>=) n
 
 nest :: (Monad m) => ((a -> m [a]) -> m [a]) -> Integer -> m [a]
 nest f n = nest' f f f (return .) (: []) (:) n
