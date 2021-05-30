@@ -88,14 +88,3 @@ term tok j = do
   return $ if tok `isPrefixOf` List.drop j str
     then IntSet.singleton $ j + length tok
     else IntSet.empty
-
-memoize :: Lab -> Recog -> Recog
-memoize lab f j = do
-  ends <- f j
-  updateTable lab j ends
-  return ends
-
-updateTable :: Lab -> Pos -> PosSet -> StateC ()
-updateTable lab j ends = modify $ Map.insertWith
-  (uncurry Map.insert . head . Map.toList)
-  lab $ Map.singleton j ends
