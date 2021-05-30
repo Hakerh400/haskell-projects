@@ -1,90 +1,85 @@
-import Prelude as P hiding ((*>))
+import Prelude hiding ((*>))
 
-import Data.List as List
+import Data.List
 import qualified Data.IntSet as IntSet
-import qualified Data.Set as Set
 import qualified Data.Map as Map
-import Control.Applicative hiding (empty, (*>))
-import Control.Monad
+
+import qualified Control.Monad.State as S
+import Control.Monad.State hiding (State)
 
 type IntSet = IntSet.IntSet
-type Set = Set.Set
 type Map = Map.Map
 
 type Lab = Int
 type Pos = Int
-type PosSet = IntSet
-type Recog = Pos -> StateC PosSet
-type MapP = Map Pos PosSet
-type Context = Map Lab MapP
-type StateC = State Context
+type Ends = IntSet
+type MapE = Map Pos Ends
+type MTable = Map Lab MapE
+type Recog = Pos -> State Ends
 
-data State s t = State {unState :: s -> (t, s)}
-
-instance Functor (State s) where
-  fmap g (State f) = State $ \s -> let
-    (t, s') = f s
-    in (g t, s')
-
-instance Applicative (State s) where
-  pure t = State (\s -> (t, s))
-  liftA2 h (State f) (State g) = State $ \s -> let
-    (t1, s1) = f s
-    (t2, s2) = g s1
-    in (h t1 t2, s2)
-
-instance Monad (State s) where
-  (State f) >>= g = State $ \s -> let
-    (t, s') = f s
-    State g' = g t
-    in g' s
-
-evalState :: State s t -> s -> t
-evalState (State f) = fst . f
-
-get :: State s s
-get = State (\s -> (s, s))
-
-put :: s -> State s ()
-put s = State (const ((), s))
-
-modify :: (s -> s) -> State s ()
-modify f = get >>= (put . f)
+type State = S.State MTable
 
 main :: IO ()
 main = do
-  putStrLn output
+  print output
   return ()
 
-str :: String
-str = "aaabbbb"
+input :: String
+input = "abcd"
 
-output :: String
-output = show $ evalState (recog 0) Map.empty
+output :: IntSet
+output = evalState (recog 0) Map.empty
 
 recog :: Recog
-recog = empty <+>
-  term "a" *> recog
+recog = term "a" *> term "b"
 
 infixl 3 <+>
 (<+>) :: Recog -> Recog -> Recog
-(<+>) r1 r2 j = do
-  s1 <- r1 j
-  s2 <- r2 j
-  return $ IntSet.union s1 s2
+r1 <+> r2 = \j -> do
+  ends1 <- r1 j
+  ends2 <- r2 j
+  return $ IntSet.union ends1 ends2
 
 infixl 4 *>
 (*>) :: Recog -> Recog -> Recog
-p *> q = \j -> do
-  endP <- p j
-  endQs <- mapM q (IntSet.elems endP)
-  return $ IntSet.unions endQs
+r1 *> r2 = \j -> do
+  ends1 <- r1 j
+  ends2 <- mapM r2 $ IntSet.elems ends1
+  return $ IntSet.unions ends2
 
 empty :: Recog
-empty j = return $ IntSet.singleton j
+empty j = do
+  return $ IntSet.singleton j
 
 term :: String -> Recog
-term tok j = do
-  return $ if tok `isPrefixOf` List.drop j str
-    then IntSet.singleton $ j + length tok
+term str j = do
+  return $ if str `isPrefixOf` drop j input
+    then IntSet.singleton $ j + (length str)
     else IntSet.empty
+
+lookupT :: Lab -> Pos -> State (Maybe Ends)
+lookupT lab j = do
+  mt <- get
+  return $ Map.lookup lab mt >>= Map.lookup j
+
+memoize :: (Enum lab) => lab -> Recog -> Recog
+memoize labE r = \j -> do
+  let lab = fromEnum labE
+  res <- lookupT lab j
+  case res of
+    Nothing -> do
+      ends <- r j
+      updateTable lab j ends
+    Just ends -> return ends
+
+updateTable :: Lab -> Pos -> Ends -> State Ends
+updateTable lab j ends = do
+  mt <- get
+  let newm = Map.singleton j ends
+  put $ Map.insertWith insertWithFunc lab newm mt
+  return ends
+
+insertWithFunc :: MapE -> MapE -> MapE
+insertWithFunc new old = let
+  (k, v) = head $ Map.toList new
+  in Map.insert k v old
