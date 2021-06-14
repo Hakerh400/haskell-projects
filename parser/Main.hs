@@ -27,7 +27,7 @@ main = do
 input :: String
 input = "abcd"
 
-output :: IntSet
+output :: Ends
 output = evalState (recog 0) Map.empty
 
 recog :: Recog
