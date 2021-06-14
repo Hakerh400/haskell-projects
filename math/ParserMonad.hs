@@ -1,4 +1,4 @@
-module ParserState (
+module ParserMonad (
   StateT(..),
   evalState,
   execState,
@@ -34,6 +34,9 @@ instance Monad (StateT s e) where
     case st s of
       Left err     -> Left err
       Right (a, s) -> getState (f a) s
+
+instance MonadFail (StateT s e) where
+  fail = error
 
 evalState :: StateT s e a -> s -> Either e a
 evalState (StateT st) s = case st s of
