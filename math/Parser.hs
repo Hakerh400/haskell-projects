@@ -1,4 +1,4 @@
-module Lisparser (
+module Parser (
   Node(..),
   Pos(..),
   Elem(..),

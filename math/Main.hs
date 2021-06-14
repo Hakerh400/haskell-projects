@@ -1,6 +1,6 @@
 import qualified System.Directory as Dir
 
-import qualified Lisparser
+import qualified Parser
 
 cwd :: IO String
 cwd = Dir.getCurrentDirectory
@@ -19,8 +19,8 @@ main = do
   let sysFileName = drop (length srcDirPth + 1) filePth
   src <- readFile filePth
 
-  case Lisparser.parse src of
-    Left err   -> putStrLn $ Lisparser.formatErr sysFileName src err
+  case Parser.parse src of
+    Left err   -> putStrLn $ Parser.formatErr sysFileName src err
     Right node -> print node
 
 joinPth :: IO String -> String -> IO String
