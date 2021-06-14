@@ -1,6 +1,6 @@
 module Parser (
-  Node(..),
   Pos(..),
+  Node(..),
   Elem(..),
   parse,
   formatErr
@@ -11,14 +11,14 @@ import qualified Data.List as List
 
 import ParserMonad
 
-data Node = Node {
-  getPos  :: Pos,
-  getElem :: Elem
-}
-
 data Pos = Pos {
   getRow :: Int,
   getCol :: Int
+}
+
+data Node = Node {
+  getPos  :: Pos,
+  getElem :: Elem
 }
 
 data Elem =
