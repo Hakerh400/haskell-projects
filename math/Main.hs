@@ -38,6 +38,6 @@ makeProg :: Node -> M Program
 makeProg node = do
   uni <- L.uni node
 
-  a <- L.chNum uni
+  a <- L.last uni
   
   return $ show a

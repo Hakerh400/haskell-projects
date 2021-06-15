@@ -18,6 +18,7 @@ module Lisp (
   a,
   ta,
   empty,
+  nempty,
   t,
   fst,
   snd,
@@ -170,6 +171,11 @@ empty node = do
   a <- n node
   return $ a == 0
 
+nempty :: Node -> M Bool
+nempty node = do
+  a <- n node
+  return $ a /= 0
+
 t :: Node -> String -> M ()
 t node name = do
   a <- fst node
@@ -183,6 +189,7 @@ snd node = e node 1
 
 last :: Node -> M Node
 last node = do
+  lenp node 1
   a <- n node
   e node (a - 1)
 
