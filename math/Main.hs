@@ -1,12 +1,12 @@
-import qualified System.Directory as Dir
-
 import qualified Parser
 import qualified Lisp as L
 import Types
 import Error
+import Util
 
-cwd :: IO String
-cwd = Dir.getCurrentDirectory
+type M = Either Error
+
+type Program = String
 
 srcDir :: IO String
 srcDir = joinPth cwd "src"
@@ -22,20 +22,22 @@ main = do
   let file = drop (length srcDirPth + 1) filePth
   src <- readFile filePth
 
-  case Parser.parse file src of
-    Left err   -> putStrLn $ show err
-    Right node -> do
-      L.ident node
+  case parseAndMakeProg file src of
+    Left  err  -> putStrLn $ show err
+    Right prog -> putStrLn prog
 
-  pure ()
+  return ()
 
-joinPth :: IO String -> String -> IO String
-joinPth dir name = do
-  d <- dir
-  return $ normPth $ d ++ "/" ++ name
+parseAndMakeProg :: String -> String -> M Program
+parseAndMakeProg file src = do
+  parsed <- Parser.parse file src
+  prog <- makeProg parsed
+  return prog
 
-normPth :: String -> String
-normPth = map $ \c ->
-  if c == '\\'
-    then '/'
-    else c
+makeProg :: Node -> M Program
+makeProg node = do
+  uni <- L.uni node
+
+  a <- L.chNum uni
+  
+  return $ show a

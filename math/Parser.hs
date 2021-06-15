@@ -38,16 +38,18 @@ parseList :: Bool -> State Node
 parseList top = do
   trim
   pos <- gets getPpos
-  if top
-    then pure ()
-    else readExactChar '('
+  pos <- if top
+    then return $ pos {getCol = (-1)}
+    else do
+      readExactChar '('
+      return pos
   list <- parseListItems
   trim
   if top
     then do
       eof <- isEof
       if eof
-        then pure ()
+        then return ()
         else throwErrHere "Missing open parenthese"
     else readExactChar ')'
   makeNode pos $ List list
@@ -57,7 +59,7 @@ parseListItems = do
   trim
   eof <- isEof
   if eof
-    then pure []
+    then return []
     else do
       char <- queryChar
       if char == ')'
@@ -85,14 +87,14 @@ trim :: State ()
 trim = do
   eof <- isEof
   if eof
-    then pure ()
+    then return ()
     else do
       char <- queryChar
       if Char.isSpace char
         then do
           readChar
           trim
-        else pure ()
+        else return ()
 
 makeNode :: Pos -> Elem -> State Node
 makeNode pos e = do
@@ -118,7 +120,7 @@ readWhile f = do
         else return ""
 
 readExactStr :: String -> State ()
-readExactStr [] = pure ()
+readExactStr [] = return ()
 readExactStr (c:cs) = do
   readExactChar c
   readExactStr cs
@@ -128,9 +130,8 @@ readExactChar c = do
   pos <- gets getPpos
   ch <- readChar
   if ch == c
-    then pure ()
-    else throwErr pos $ concat
-      ["Expected ", show c, ", but got ", show ch]
+    then return ()
+    else throwErr pos $ exg (show c) (show ch)
 
 readChar :: State Char
 readChar = readOrQueryChar True
@@ -156,7 +157,7 @@ readOrQueryChar shouldRead = do
               then Pos (row + 1) 0
               else Pos row (col + 1)
           }
-        else pure ()
+        else return ()
       return char
 
 isEof :: State Bool

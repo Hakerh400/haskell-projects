@@ -19,8 +19,9 @@ instance Show Error where
     srcLines = sanl src
     msg = getMsg err
     (Pos row col) = getErrPos err
+    col1 = col + 1
     rowStr = show $ row + 1
-    colStr = show $ col + 1
+    colStr = show $ col1
     indentSize = max 4 $ length rowStr + 1
     indentStr = indent indentSize
     in concat [
@@ -28,7 +29,7 @@ instance Show Error where
       modifyLines (indentErrMsgLine indentSize) msg, "\n",
       indentStr, "|\n",
       padStart (indentSize - 1) rowStr, " | ", srcLines !! row, "\n",
-      indentStr, "| ", replicate col ' ', "^"
+      indentStr, "|", replicate col1 ' ', "^"
     ]
 
 indent :: Int -> String

@@ -4,10 +4,20 @@ module Util (
   padStart,
   padEnd,
   sanl,
-  split
+  split,
+  cwd,
+  joinPth,
+  normPth,
+  ex,
+  exg,
+  isNat,
+  allDigits,
+  u
 ) where
 
+import qualified Data.Char as Char
 import qualified Data.List as List
+import qualified System.Directory as Dir
 
 modifyLines :: (String -> String) -> String -> String
 modifyLines f str = List.intercalate "\n" $ map f $ sanl str
@@ -47,3 +57,34 @@ split' func skip prev list sub acc = case list of
         0 -> split' func 0 (x : prev) xs (x : []) (reverse sub : acc)
         n -> split' func (n - 1) (x : prev) xs [] (reverse sub : acc)
     n -> split' func (n - 1) (x : prev) xs sub acc
+
+cwd :: IO String
+cwd = Dir.getCurrentDirectory
+
+joinPth :: IO String -> String -> IO String
+joinPth dir name = do
+  d <- dir
+  return $ normPth $ d ++ "/" ++ name
+
+normPth :: String -> String
+normPth = map $ \c ->
+  if c == '\\'
+    then '/'
+    else c
+
+ex :: String -> String
+ex expected = "Expected " ++ expected
+
+exg :: String -> String -> String
+exg expected got = ex expected ++ ", but got " ++ got
+
+isNat :: String -> Bool
+isNat ('0':[]) = True
+isNat ('0':_)  = False
+isNat xs       = allDigits xs
+
+allDigits :: String -> Bool
+allDigits str = all Char.isDigit str
+
+u :: a
+u = undefined
