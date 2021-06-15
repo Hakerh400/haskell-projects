@@ -9,6 +9,7 @@ import State
 import Types
 import Error
 import Util
+import MonadE
 
 data ParserState = ParserState {
   getPfile :: File,

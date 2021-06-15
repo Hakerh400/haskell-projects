@@ -1,14 +1,18 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module State (
   StateT(..),
   evalState,
   execState,
   get,
   gets,
-  put,
-  throw
+  put
 ) where
 
 import Control.Applicative
+
+import MonadE
+import Error
 
 newtype StateT s e a = StateT
   {getState :: s -> Either e (a, s)}
@@ -38,6 +42,9 @@ instance Monad (StateT s e) where
 instance MonadFail (StateT s e) where
   fail = error
 
+instance MonadE (StateT s Error) where
+  throw = StateT . const . Left
+
 evalState :: StateT s e a -> s -> Either e a
 evalState (StateT st) s = case st s of
   Left err     -> Left err
@@ -58,6 +65,3 @@ gets f = do
 
 put :: s -> StateT s e ()
 put s = StateT $ const $ Right ((), s)
-
-throw :: e -> StateT s e a
-throw err = StateT $ const $ Left err

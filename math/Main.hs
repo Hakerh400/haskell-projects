@@ -3,6 +3,9 @@ import qualified Lisp as L
 import Types
 import Error
 import Util
+import MonadE
+import State
+import Predicate
 
 type M = Either Error
 
@@ -25,8 +28,6 @@ main = do
   case parseAndMakeProg file src of
     Left  err  -> putStrLn $ show err
     Right prog -> putStrLn prog
-
-  return ()
 
 parseAndMakeProg :: String -> String -> M Program
 parseAndMakeProg file src = do

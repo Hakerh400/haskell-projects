@@ -33,28 +33,27 @@ import Prelude hiding (fst, snd, last, break)
 
 import Types
 import Error
+import MonadE
 
 import Util hiding (isNat)
 import qualified Util
 
-type M = Either Error
-
-s :: Node -> M Bool
+s :: (MonadE m) => Node -> m Bool
 s node = case getElem node of
-  Ident _ -> Right True
-  _       -> Right False
+  Ident _ -> return True
+  _       -> return False
 
-v :: Node -> M Bool
+v :: (MonadE m) => Node -> m Bool
 v node = case getElem node of
-  List _ -> Right True
-  _      -> Right False
+  List _ -> return True
+  _      -> return False
 
-ident :: Node -> M ()
+ident :: (MonadE m) => Node -> m ()
 ident node = case getElem node of
   Ident _ -> return ()
   _       -> err node $ exg "an identifier" "a list"
 
-ident' :: Node -> String -> M ()
+ident' :: (MonadE m) => Node -> String -> m ()
 ident' node name = do
   ident node
   let Ident s = getElem node
@@ -62,12 +61,12 @@ ident' node name = do
     then return ()
     else err node $ exg (show name) (show s)
 
-list :: Node -> M ()
+list :: (MonadE m) => Node -> m ()
 list node = case getElem node of
   List _ -> return ()
   _      -> err node $ exg "a list" "an identifier"
 
-uni :: Node -> M Node
+uni :: (MonadE m) => Node -> m Node
 uni node = do
   list node
   case getElem node of
@@ -77,24 +76,24 @@ uni node = do
         then "an empty list"
         else show (length n) ++ " elements"
 
-n :: Node -> M Int
+n :: (MonadE m) => Node -> m Int
 n node = do
   list node
   let (List xs) = getElem node
   return $ length xs
 
-m :: Node -> M String
+m :: (MonadE m) => Node -> m String
 m node = do
   ident node
   let (Ident name) = getElem node
   return name
 
-isNat :: Node -> M Bool
+isNat :: (MonadE m) => Node -> m Bool
 isNat node = do
   name <- m node
   return $ Util.isNat name
 
-isInt :: Node -> M Bool
+isInt :: (MonadE m) => Node -> m Bool
 isInt node = do
   name <- m node
   case name of
@@ -102,7 +101,7 @@ isInt node = do
     ('-':xs)    -> return $ Util.isNat xs
     xs          -> return $ Util.isNat xs
 
-getNat :: Node -> M Integer
+getNat :: (MonadE m) => Node -> m Integer
 getNat node = do
   nat <- isNat node
   if nat
@@ -111,7 +110,7 @@ getNat node = do
       return $ read $ name
     else err node $ ex "a natural number"
 
-getInt :: Node -> M Integer
+getInt :: (MonadE m) => Node -> m Integer
 getInt node = do
   int <- isInt node
   if int
@@ -120,7 +119,7 @@ getInt node = do
       return $ read $ name
     else err node $ ex "an integer"
 
-len :: Node -> Int -> Int -> M ()
+len :: (MonadE m) => Node -> Int -> Int -> m ()
 len node x y = do
   z <- n node
   if z >= x && z <= y
@@ -130,7 +129,7 @@ len node x y = do
       show x, " and ", show y,
       " (inclusive), but it is ", show z]
 
-lenp :: Node -> Int -> M ()
+lenp :: (MonadE m) => Node -> Int -> m ()
 lenp node x = do
   z <- n node
   if z >= x
@@ -139,7 +138,7 @@ lenp node x = do
       "The length of the list must be at least ",
       show x, ", but it is ", show z]
 
-lenm :: Node -> Int -> M ()
+lenm :: (MonadE m) => Node -> Int -> m ()
 lenm node x = do
   z <- n node
   if z <= x
@@ -148,70 +147,70 @@ lenm node x = do
       "The length of the list must be at most ",
       show x, ", but it is ", show z]
 
-e :: Node -> Int -> M Node
+e :: (MonadE m) => Node -> Int -> m Node
 e node i = do
   lenp node (i + 1)
   xs <- elems node
   return $ xs !! i
 
-a :: Node -> Int -> (Node -> M a) -> M [a]
+a :: (MonadE m) => Node -> Int -> (Node -> m a) -> m [a]
 a node i f = do
   lenp node i
   xs <- elems node
   mapM f $ drop i xs
 
-ta :: Node -> String -> (Node -> M a) -> M [a]
+ta :: (MonadE m) => Node -> String -> (Node -> m a) -> m [a]
 ta node name f = do
   t node name
   xs <- elems node
   mapM f $ tail xs
 
-empty :: Node -> M Bool
+empty :: (MonadE m) => Node -> m Bool
 empty node = do
   a <- n node
   return $ a == 0
 
-nempty :: Node -> M Bool
+nempty :: (MonadE m) => Node -> m Bool
 nempty node = do
   a <- n node
   return $ a /= 0
 
-t :: Node -> String -> M ()
+t :: (MonadE m) => Node -> String -> m ()
 t node name = do
   a <- fst node
   ident' a name
 
-fst :: Node -> M Node
+fst :: (MonadE m) => Node -> m Node
 fst node = e node 0
 
-snd :: Node -> M Node
+snd :: (MonadE m) => Node -> m Node
 snd node = e node 1
 
-last :: Node -> M Node
+last :: (MonadE m) => Node -> m Node
 last node = do
   lenp node 1
   a <- n node
   e node (a - 1)
 
-elems :: Node -> M [Node]
+elems :: (MonadE m) => Node -> m [Node]
 elems node = do
   list node
   let (List xs) = getElem node
   return xs
 
-chNum :: Node -> M Int
+chNum :: (MonadE m) => Node -> m Int
 chNum node = case getElem node of
   List xs -> return $ length xs
   _       -> return 0
 
-getCh :: Node -> Int -> M Node
+getCh :: (MonadE m) => Node -> Int -> m Node
 getCh = e
 
-err :: Node -> String -> M a
+err :: (MonadE m) => Node -> String -> m a
 err node msg = let
   file = getFile node
   pos = getPos node
-  in Left $ Error {
+  in throw $ Error {
     getErrFile = file,
     getErrPos = pos,
     getMsg = msg
