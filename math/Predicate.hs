@@ -1,6 +1,8 @@
 module Predicate (
   Pred(..),
-  Expr(..)
+  Expr(..),
+  builtinPredNames,
+  isBuiltinPred
 ) where
 
 import qualified Data.List as List
@@ -29,17 +31,33 @@ data Expr =
   deriving (Eq, Ord)
 
 instance Show Pred where
-  show (Forall a b) = concat ["V", a, show b]
-  show (Exists a b) = concat ["E", a, show b]
+  show (Forall a b) = concat ["V", a, " ", show b]
+  show (Exists a b) = concat ["E", a, " ", show b]
   show (Impl   a b) = op "->" a b
   show (Equiv  a b) = op "<->" a b
   show (Disj   a b) = op "v" a b
   show (Conj   a b) = op "^" a b
-  show (Neg    a)   = "~"  ++ show a
-  show (Stat   a)   = "\\" ++ expr2str True a
+  show (Neg    a  ) = "~" ++ show a
+  show (Stat   a  ) = expr2str True a
 
 instance Show Expr where
   show = expr2str False
+
+builtinPredNames :: [String]
+builtinPredNames =
+  [ "all"
+  , "exi"
+  , "<->"
+  , "->"
+  , "|"
+  , "&"
+  , "~"
+  , "T"
+  , "F"
+  ]
+
+isBuiltinPred :: String -> Bool
+isBuiltinPred = (`elem` builtinPredNames)
 
 expr2str :: Bool -> Expr -> String
 expr2str ps expr = case expr of

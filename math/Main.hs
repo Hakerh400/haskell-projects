@@ -13,9 +13,10 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Foldable
 
-type M = Either Error
+type System = String
 
-type Program = String
+type State s = StateT s Error
+type M = Either Error
 
 srcDir :: IO String
 srcDir = joinPth cwd "src"
@@ -31,18 +32,18 @@ main = do
   let file = drop (length srcDirPth + 1) filePth
   src <- readFile filePth
 
-  case parseAndMakeProg file src of
+  case parseAndParseSys file src of
     Left  err  -> putStrLn $ show err
-    Right prog -> putStrLn prog
+    Right sys  -> putStrLn sys
 
-parseAndMakeProg :: String -> String -> M Program
-parseAndMakeProg file src = do
+parseAndParseSys :: String -> String -> M System
+parseAndParseSys file src = do
   parsed <- Parser.parse file src
-  prog <- makeProg parsed
-  return prog
+  sys <- parseSys parsed
+  return sys
 
-makeProg :: Node -> M Program
-makeProg node = do
+parseSys :: Node -> M System
+parseSys node = do
   elems <- L.elems node
 
   let mainPred = node {
@@ -52,7 +53,7 @@ makeProg node = do
 
   p <- parsePred mainPred
   
-  return $ show mainPred
+  return $ show p
 
 parsePred :: Node -> M Pred
 parsePred node = do
@@ -63,33 +64,38 @@ parsePred node = do
       case name of
         "T" -> return PTrue
         "F" -> return PFalse
-        a   -> L.err node $ "Undefined constant " ++ show a
+        a   -> parseStat node
     else do
       t <- L.t node
       elems <- L.elems' node 1
       case t of
         "all" -> parseQuantifier Forall node
         "exi" -> parseQuantifier Exists node
-        "<->" -> parseStruct Equiv elems
-        "->"  -> parseStruct Impl  elems
-        "|"   -> parseStruct Disj  elems
-        "&"   -> parseStruct Conj  elems
+        "<->" -> do
+          L.len node 3
+          a <- L.e node 1 >>= parsePred
+          b <- L.e node 2 >>= parsePred
+          return $ Equiv a b
+        "->"  -> parseStruct Impl node
+        "|"   -> parseStruct Disj node
+        "&"   -> parseStruct Conj node
         "~"   -> do
           L.len node 2
           p <- L.e node 1 >>= parsePred
           return $ Neg p
-        "\\"  -> do
-          L.len node 2
-          expr <- L.e node 1 >>= parseExpr
-          return $ Stat expr
-        _     -> do
-          a <- L.fst node
-          L.err a $ "Undefined structure " ++ show t
+        _     -> parseStat node
 
-parseStruct :: (Set Pred -> Pred) -> [Node] -> M Pred
-parseStruct f elems = do
+parseStat :: Node -> M Pred
+parseStat node = do
+  expr <- parseExpr node
+  return $ Stat expr
+
+parseStruct :: (Pred -> Pred -> Pred) -> Node -> M Pred
+parseStruct f node = do
+  L.lenp node 2
+  elems <- L.elems' node 1
   xs <- mapM parsePred elems
-  return $ f $ Set.fromList xs
+  return $ foldr1 f xs
 
 parseQuantifier :: (String -> Pred -> Pred) -> Node -> M Pred
 parseQuantifier f node = do
@@ -107,12 +113,9 @@ parseExpr node = do
       return $ ExprI name
     else do
       L.lenp node 1
-      name <- L.t node
-      elems <- L.elems' 1
-      foldlM (\a b -> do
-        c <- parseExpr b
-        return $ ExprP a c
-        ) (ExprI name) elems
+      elems <- L.elems node
+      xs <- mapM parseExpr elems
+      return $ foldl1 ExprP xs
 
 getVar :: Node -> M String
 getVar node = getIdent "variable"

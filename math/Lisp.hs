@@ -128,7 +128,7 @@ len node x = do
   if z == x
     then return ()
     else err node $ concat [
-      "The length of the list must be ", show x,
+      "The length of this list must be ", show x,
       ", but it is ", show z]
 
 len' :: (MonadE m) => Node -> Int -> Int -> m ()
@@ -137,7 +137,7 @@ len' node x y = do
   if z >= x && z <= y
     then return ()
     else err node $ concat [
-      "The length of the list must be between ",
+      "The length of this list must be between ",
       show x, " and ", show y,
       " (inclusive), but it is ", show z]
 
@@ -147,7 +147,7 @@ lenp node x = do
   if z >= x
     then return ()
     else err node $ concat [
-      "The length of the list must be at least ",
+      "The length of this list must be at least ",
       show x, ", but it is ", show z]
 
 lenm :: (MonadE m) => Node -> Int -> m ()
@@ -156,7 +156,7 @@ lenm node x = do
   if z <= x
     then return ()
     else err node $ concat [
-      "The length of the list must be at most ",
+      "The length of this list must be at most ",
       show x, ", but it is ", show z]
 
 e :: (MonadE m) => Node -> Int -> m Node
