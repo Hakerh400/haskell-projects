@@ -7,6 +7,8 @@ module Types (
 
 import qualified Data.List as List
 
+import Util
+
 data File = File {
   getFname :: String,
   getFsrc  :: String
@@ -32,4 +34,4 @@ instance Show Node where
 
 instance Show Elem where
   show (Ident name) = name
-  show (List  list) = "(" ++ List.intercalate " " (fmap show list) ++ ")"
+  show (List  list) = parens $ sp $ fmap show list

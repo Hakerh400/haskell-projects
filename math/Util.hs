@@ -12,6 +12,8 @@ module Util (
   exg,
   isNat,
   allDigits,
+  parens,
+  sp,
   u
 ) where
 
@@ -85,6 +87,12 @@ isNat xs       = allDigits xs
 
 allDigits :: String -> Bool
 allDigits str = all Char.isDigit str
+
+parens :: String -> String
+parens str = concat ["(", str, ")"]
+
+sp :: [String] -> String
+sp = List.intercalate " "
 
 u :: a
 u = undefined

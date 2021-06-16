@@ -11,6 +11,7 @@ import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified Data.Set as Set
 import Data.Set (Set)
+import Data.Foldable
 
 type M = Either Error
 
@@ -103,18 +104,22 @@ parseExpr node = do
   if isIdent
     then do
       name <- L.m node
-      return $ Expr name []
+      return $ ExprI name
     else do
+      L.lenp node 1
       name <- L.t node
-      elems <- L.elems' node 1
-      exprs <- mapM parseExpr elems
-      return $ Expr name exprs
+      elems <- L.elems' 1
+      foldlM (\a b -> do
+        c <- parseExpr b
+        return $ ExprP a c
+        ) (ExprI name) elems
 
 getVar :: Node -> M String
-getVar node = getIdent "variable" (\name -> let
-  (c:cs) = name
-  in Char.isLower c && all Char.isAlphaNum cs
-  ) node
+getVar node = getIdent "variable"
+  (\name -> let
+    (c:cs) = name
+    in Char.isLower c && all Char.isAlphaNum cs)
+  node
 
 getIdent :: String -> (String -> Bool) -> Node -> M String
 getIdent k f node = do

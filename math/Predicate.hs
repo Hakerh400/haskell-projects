@@ -13,10 +13,10 @@ import State
 data Pred =
   Forall String Pred |
   Exists String Pred |
-  Equiv  (Set Pred)  |
-  Impl   (Set Pred)  |
-  Disj   (Set Pred)  |
-  Conj   (Set Pred)  |
+  Impl   Pred   Pred |
+  Equiv  Pred   Pred |
+  Disj   Pred   Pred |
+  Conj   Pred   Pred |
   Neg    Pred        |
   Stat   Expr        |
   PTrue              |
@@ -24,32 +24,33 @@ data Pred =
   deriving (Eq, Ord)
 
 data Expr =
-  Expr String [Expr]
+  ExprI String |
+  ExprP Expr Expr
   deriving (Eq, Ord)
 
 instance Show Pred where
-  show PTrue  = "T"
-  show PFalse = "F"
-  show a      = inspectToList inspectPred a
+  show (Forall a b) = concat ["V", a, show b]
+  show (Exists a b) = concat ["E", a, show b]
+  show (Impl   a b) = op "->" a b
+  show (Equiv  a b) = op "<->" a b
+  show (Disj   a b) = op "v" a b
+  show (Conj   a b) = op "^" a b
+  show (Neg    a)   = "~"  ++ show a
+  show (Stat   a)   = "\\" ++ expr2str True a
 
 instance Show Expr where
-  show = inspectToList inspectExpr
+  show = expr2str False
 
-inspectPred :: Pred -> [String]
-inspectPred (Forall a p) = ["all", a, show p]
-inspectPred (Exists a p) = ["exi", a, show p]
-inspectPred (Equiv  ps)  = "<->" : inspectPredSet ps
-inspectPred (Impl   ps)  = "->" : inspectPredSet ps
-inspectPred (Disj   ps)  = "|" : inspectPredSet ps
-inspectPred (Conj   ps)  = "&" : inspectPredSet ps
-inspectPred (Neg    p)   = ["~", show p]
-inspectPred (Stat   e)   = ["\\", show e]
+expr2str :: Bool -> Expr -> String
+expr2str ps expr = case expr of
+  (ExprI a)   -> a
+  (ExprP a b) -> let
+    a1 = expr2str False a
+    b1 = expr2str True  b
+    c  = sp [a1, b1]
+    in if ps
+      then parens c
+      else c
 
-inspectPredSet :: Set Pred -> [String]
-inspectPredSet = map show . Set.toList
-
-inspectExpr :: Expr -> [String]
-inspectExpr (Expr a es) = a : map show es
-
-inspectToList :: (a -> [String]) -> a -> String
-inspectToList f a = concat ["(", List.intercalate " " $ f a, ")"]
+op :: String -> Pred -> Pred -> String
+op a b c = parens $ sp [a, show b, show c]
