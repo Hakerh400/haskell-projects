@@ -59,9 +59,7 @@ get :: StateT s e s
 get = StateT $ \s -> Right (s, s)
 
 gets :: (s -> a) -> StateT s e a
-gets f = do
-  s <- get
-  return $ f s
+gets f = get >>= return . f
 
 put :: s -> StateT s e ()
 put s = StateT $ const $ Right ((), s)

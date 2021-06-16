@@ -21,12 +21,16 @@ data Pred =
   Stat   Expr        |
   PTrue              |
   PFalse
+  deriving (Eq, Ord)
 
 data Expr =
   Expr String [Expr]
+  deriving (Eq, Ord)
 
 instance Show Pred where
-  show = inspectToList inspectPred
+  show PTrue  = "T"
+  show PFalse = "F"
+  show a      = inspectToList inspectPred a
 
 instance Show Expr where
   show = inspectToList inspectExpr
@@ -39,9 +43,7 @@ inspectPred (Impl   ps)  = "->" : inspectPredSet ps
 inspectPred (Disj   ps)  = "|" : inspectPredSet ps
 inspectPred (Conj   ps)  = "&" : inspectPredSet ps
 inspectPred (Neg    p)   = ["~", show p]
-inspectPred (Stat   e)   = "." : inspectExpr e
-inspectPred PTrue        = ["T"]
-inspectPred PFalse       = ["F"]
+inspectPred (Stat   e)   = ["\\", show e]
 
 inspectPredSet :: Set Pred -> [String]
 inspectPredSet = map show . Set.toList

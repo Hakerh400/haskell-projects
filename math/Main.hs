@@ -7,6 +7,11 @@ import MonadE
 import State
 import Predicate
 
+import qualified Data.Char as Char
+import qualified Data.List as List
+import qualified Data.Set as Set
+import Data.Set (Set)
+
 type M = Either Error
 
 type Program = String
@@ -37,8 +42,84 @@ parseAndMakeProg file src = do
 
 makeProg :: Node -> M Program
 makeProg node = do
-  uni <- L.uni node
+  elems <- L.elems node
 
-  a <- L.last uni
+  let mainPred = node {
+    getElem = List $
+      node {getElem = Ident "->"}
+      : elems}
+
+  p <- parsePred mainPred
   
-  return $ show a
+  return $ show mainPred
+
+parsePred :: Node -> M Pred
+parsePred node = do
+  isIdent <- L.s node
+  if isIdent
+    then do
+      name <- L.m node
+      case name of
+        "T" -> return PTrue
+        "F" -> return PFalse
+        a   -> L.err node $ "Undefined constant " ++ show a
+    else do
+      t <- L.t node
+      elems <- L.elems' node 1
+      case t of
+        "all" -> parseQuantifier Forall node
+        "exi" -> parseQuantifier Exists node
+        "<->" -> parseStruct Equiv elems
+        "->"  -> parseStruct Impl  elems
+        "|"   -> parseStruct Disj  elems
+        "&"   -> parseStruct Conj  elems
+        "~"   -> do
+          L.len node 2
+          p <- L.e node 1 >>= parsePred
+          return $ Neg p
+        "\\"  -> do
+          L.len node 2
+          expr <- L.e node 1 >>= parseExpr
+          return $ Stat expr
+        _     -> do
+          a <- L.fst node
+          L.err a $ "Undefined structure " ++ show t
+
+parseStruct :: (Set Pred -> Pred) -> [Node] -> M Pred
+parseStruct f elems = do
+  xs <- mapM parsePred elems
+  return $ f $ Set.fromList xs
+
+parseQuantifier :: (String -> Pred -> Pred) -> Node -> M Pred
+parseQuantifier f node = do
+  L.len node 3
+  name <- L.e node 1 >>= getVar
+  p <- L.e node 2 >>= parsePred
+  return $ f name p
+
+parseExpr :: Node -> M Expr
+parseExpr node = do
+  isIdent <- L.s node
+  if isIdent
+    then do
+      name <- L.m node
+      return $ Expr name []
+    else do
+      name <- L.t node
+      elems <- L.elems' node 1
+      exprs <- mapM parseExpr elems
+      return $ Expr name exprs
+
+getVar :: Node -> M String
+getVar node = getIdent "variable" (\name -> let
+  (c:cs) = name
+  in Char.isLower c && all Char.isAlphaNum cs
+  ) node
+
+getIdent :: String -> (String -> Bool) -> Node -> M String
+getIdent k f node = do
+  name <- L.m node
+  if f name
+    then return name
+    else L.err node $ concat
+      [show name, " is not a valid ", k, " name"]

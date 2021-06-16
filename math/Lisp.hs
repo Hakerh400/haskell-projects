@@ -12,6 +12,7 @@ module Lisp (
   getNat,
   getInt,
   len,
+  len',
   lenp,
   lenm,
   e,
@@ -20,10 +21,12 @@ module Lisp (
   empty,
   nempty,
   t,
+  t',
   fst,
   snd,
   last,
   elems,
+  elems',
   chNum,
   getCh,
   err
@@ -119,8 +122,17 @@ getInt node = do
       return $ read $ name
     else err node $ ex "an integer"
 
-len :: (MonadE m) => Node -> Int -> Int -> m ()
-len node x y = do
+len :: (MonadE m) => Node -> Int -> m ()
+len node x = do
+  z <- n node
+  if z == x
+    then return ()
+    else err node $ concat [
+      "The length of the list must be ", show x,
+      ", but it is ", show z]
+
+len' :: (MonadE m) => Node -> Int -> Int -> m ()
+len' node x y = do
   z <- n node
   if z >= x && z <= y
     then return ()
@@ -161,7 +173,7 @@ a node i f = do
 
 ta :: (MonadE m) => Node -> String -> (Node -> m a) -> m [a]
 ta node name f = do
-  t node name
+  t' node name
   xs <- elems node
   mapM f $ tail xs
 
@@ -175,8 +187,11 @@ nempty node = do
   a <- n node
   return $ a /= 0
 
-t :: (MonadE m) => Node -> String -> m ()
-t node name = do
+t :: (MonadE m) => Node -> m String
+t node = fst node >>= m
+
+t' :: (MonadE m) => Node -> String -> m ()
+t' node name = do
   a <- fst node
   ident' a name
 
@@ -197,6 +212,12 @@ elems node = do
   list node
   let (List xs) = getElem node
   return xs
+
+elems' :: (MonadE m) => Node -> Int -> m [Node]
+elems' node i = do
+  lenp node i
+  xs <- elems node
+  return $ drop i xs
 
 chNum :: (MonadE m) => Node -> m Int
 chNum node = case getElem node of
