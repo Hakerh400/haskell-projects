@@ -1,1 +1,4 @@
-(all a (= a a))
+(all (F G) (&
+  (all a (F a))
+  (all a (G a))
+))

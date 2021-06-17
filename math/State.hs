@@ -1,13 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module State (
-  StateT(..),
-  evalState,
-  execState,
-  get,
-  gets,
-  put
-) where
+module State
+  ( StateT(..)
+  , evalState
+  , execState
+  , get
+  , gets
+  , put
+  , either2state
+  ) where
 
 import Control.Applicative
 
@@ -63,3 +64,9 @@ gets f = get >>= return . f
 
 put :: s -> StateT s e ()
 put s = StateT $ const $ Right ((), s)
+
+either2state :: Either Error a -> StateT s Error a
+either2state ei = do
+  case ei of
+    Left  err -> throw err
+    Right val -> return val

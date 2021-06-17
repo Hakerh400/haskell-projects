@@ -1,36 +1,36 @@
-module Lisp (
-  s,
-  v,
-  ident,
-  ident',
-  list,
-  uni,
-  n,
-  m,
-  isNat,
-  isInt,
-  getNat,
-  getInt,
-  len,
-  len',
-  lenp,
-  lenm,
-  e,
-  a,
-  ta,
-  empty,
-  nempty,
-  t,
-  t',
-  fst,
-  snd,
-  last,
-  elems,
-  elems',
-  chNum,
-  getCh,
-  err
-) where
+module Lisp
+  ( s
+  , v
+  , ident
+  , ident'
+  , list
+  , uni
+  , n
+  , m
+  , isNat
+  , isInt
+  , getNat
+  , getInt
+  , len
+  , len'
+  , lenp
+  , lenm
+  , e
+  , a
+  , ta
+  , empty
+  , nempty
+  , t
+  , t'
+  , fst
+  , snd
+  , last
+  , elems
+  , elems'
+  , chNum
+  , getCh
+  , err
+  ) where
 
 import Prelude hiding (fst, snd, last, break)
 

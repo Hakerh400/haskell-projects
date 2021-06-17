@@ -1,9 +1,9 @@
-module Predicate (
-  Pred(..),
-  Expr(..),
-  builtinPredNames,
-  isBuiltinPred
-) where
+module Predicate
+  ( Pred(..)
+  , Expr(..)
+  , builtinPredNames
+  , isBuiltinPred
+  ) where
 
 import qualified Data.List as List
 import qualified Data.Set as Set
@@ -17,12 +17,12 @@ data Pred =
   Exists String Pred |
   Impl   Pred   Pred |
   Equiv  Pred   Pred |
-  Disj   Pred   Pred |
-  Conj   Pred   Pred |
-  Neg    Pred        |
+  Or     Pred   Pred |
+  And    Pred   Pred |
+  Pnot   Pred        |
   Stat   Expr        |
-  PTrue              |
-  PFalse
+  Ptrue              |
+  Pfalse
   deriving (Eq, Ord)
 
 data Expr =
@@ -35,10 +35,12 @@ instance Show Pred where
   show (Exists a b) = concat ["E", a, " ", show b]
   show (Impl   a b) = op "->" a b
   show (Equiv  a b) = op "<->" a b
-  show (Disj   a b) = op "v" a b
-  show (Conj   a b) = op "^" a b
-  show (Neg    a  ) = "~" ++ show a
+  show (Or     a b) = op "v" a b
+  show (And    a b) = op "^" a b
+  show (Pnot   a  ) = "~" ++ show a
   show (Stat   a  ) = expr2str True a
+  show (Ptrue     ) = "True"
+  show (Pfalse    ) = "False"
 
 instance Show Expr where
   show = expr2str False
@@ -47,13 +49,13 @@ builtinPredNames :: [String]
 builtinPredNames =
   [ "all"
   , "exi"
-  , "<->"
   , "->"
+  , "<->"
   , "|"
   , "&"
   , "~"
-  , "T"
-  , "F"
+  , "True"
+  , "False"
   ]
 
 isBuiltinPred :: String -> Bool
@@ -71,4 +73,4 @@ expr2str ps expr = case expr of
       else c
 
 op :: String -> Pred -> Pred -> String
-op a b c = parens $ sp [a, show b, show c]
+op a b c = parens $ sp [show b, a, show c]
