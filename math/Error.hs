@@ -2,7 +2,7 @@ module Error (
   Error(..)
 ) where
 
-import Types
+import ParserTypes
 import Util
 
 data Error = Error

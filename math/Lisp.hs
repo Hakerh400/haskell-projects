@@ -34,7 +34,7 @@ module Lisp
 
 import Prelude hiding (fst, snd, last, break)
 
-import Types
+import ParserTypes
 import Error
 import MonadE
 

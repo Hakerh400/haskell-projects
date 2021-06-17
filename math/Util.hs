@@ -8,6 +8,10 @@ module Util
   , cwd
   , joinPth
   , normPth
+  , fstElem
+  , sortPair
+  , mapSet
+  , mapPair
   , ex
   , exg
   , isNat
@@ -24,6 +28,10 @@ module Util
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified System.Directory as Dir
+import Data.Foldable
+
+import qualified Data.Set as Set
+import Data.Set (Set)
 
 modifyLines :: (String -> String) -> String -> String
 modifyLines f str = lf $ map f $ sanl str
@@ -77,6 +85,20 @@ normPth = map $ \c ->
   if c == '\\'
     then '/'
     else c
+
+fstElem :: (Foldable t) => t a -> Maybe a
+fstElem = find $ const True
+
+sortPair :: (Ord a) => a -> a -> (a, a)
+sortPair a b = if a <= b
+  then (a, b)
+  else (b, a)
+
+mapSet :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
+mapSet f set = Set.fromList $ map f $ Set.toList set
+
+mapPair :: (a -> b) -> (a, a) -> (b, b)
+mapPair f (a, b) = (f a, f b)
 
 ex :: String -> String
 ex expected = "Expected " ++ expected

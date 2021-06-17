@@ -1,4 +1,4 @@
-module Types (
+module ParserTypes (
   File(..),
   Pos(..),
   Node(..),

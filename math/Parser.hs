@@ -6,7 +6,7 @@ import qualified Data.Char as Char
 import qualified Data.List as List
 
 import State
-import Types
+import ParserTypes
 import Error
 import Util
 import MonadE

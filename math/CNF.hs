@@ -12,6 +12,7 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 
 import Predicate
+import Expression
 import Util
 
 data Item =

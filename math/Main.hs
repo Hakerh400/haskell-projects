@@ -1,5 +1,6 @@
 import qualified Data.Char as Char
 import qualified Data.List as List
+import Data.Maybe
 import Data.Foldable
 import Control.Monad
 import System.IO
@@ -9,13 +10,15 @@ import Data.Set (Set)
 
 import qualified Parser
 import qualified Lisp as L
-import Types
+import ParserTypes
 import Error
 import Util
 import MonadE
 import State
 import Predicate
+import Expression
 import CNF
+import Solver
 
 type State  s = StateT s Error
 type StateP   = State  InfoP
@@ -35,6 +38,24 @@ sysFile = joinPth srcDir "system.txt"
 
 main :: IO ()
 main = do
+  let a = ExprI Var "a"
+  let lhs = ExprP a a
+  let rhs = ExprP (ExprP (ExprI Const "A") (ExprI Var "b"))
+                  (ExprP (ExprI Var "c") (ExprI Const "B"))
+
+  let sys = Set.singleton $ makeEq lhs rhs
+  putStrLn $ uncurry (\lhs rhs -> concat [show lhs, " - ", show rhs]) $ fromJust $ fstElem sys
+  putStrLn ""
+
+  case solve sys of
+    Nothing   -> putStrLn "/"
+    Just list -> do
+      print $ foldl
+        (\expr (s, e) -> substIdentE s e expr)
+        lhs list
+
+main1 :: IO ()
+main1 = do
   mapM_ (flip hSetBuffering NoBuffering)
     [stdin, stdout, stderr]
 
@@ -50,16 +71,18 @@ main = do
 
 prove :: CNF -> IO ()
 prove cnf = if isCnfProved cnf
-  then print "\n---\n\nProved!"
+  then putStrLn "\n---\n\nProved!"
   else do
     print cnf
-    line <- input
-    putStrLn "\n"
+    -- line <- input
+    -- putStrLn "\n"
 
 input :: IO String
 input = do
   putStr "\n>>> "
-  getLine
+  line <- getLine
+  putStrLn ""
+  return line
 
 parseAndInitSys :: String -> String -> M Pred
 parseAndInitSys file src = do
@@ -286,26 +309,6 @@ standardizeIdent f name p = do
   p <- standardizeIdents p
 
   return $ f name p
-
-substIdentP :: String -> Expr -> Pred -> Pred
-substIdentP x y (Forall a b) = Forall a $ substQuantifier x y a b
-substIdentP x y (Exists a b) = Exists a $ substQuantifier x y a b
-substIdentP x y (Or     a b) = substIdentP x y a `Or`  substIdentP x y b
-substIdentP x y (And    a b) = substIdentP x y a `And` substIdentP x y b
-substIdentP x y (Pnot   a  ) = Pnot $ substIdentP x y a
-substIdentP x y (Stat   a  ) = Stat $ substIdentE x y a
-substIdentP x y a = error $ show a
-
-substIdentE :: String -> Expr -> Expr -> Expr
-substIdentE x y (ExprI t a) = if a == x
-  then y
-  else ExprI t a
-substIdentE x y (ExprP a b) = ExprP (substIdentE x y a) (substIdentE x y b)
-
-substQuantifier :: String -> Expr -> String -> Pred -> Pred
-substQuantifier x y a p = if a == x
-  then p
-  else substIdentP x y p
 
 skolemize :: Pred -> StateP Pred
 skolemize = skolemize' Set.empty

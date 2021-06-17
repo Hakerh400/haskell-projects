@@ -1,10 +1,9 @@
 module Predicate
   ( Pred(..)
-  , Expr(..)
-  , IdentType(..)
   , builtinPredNames
   , isBuiltinPred
-  , getIdentType
+  , substIdentP
+  , substQuantifier
   , getAvailConst
   , getAvailConst'
   , getAvailVar
@@ -19,6 +18,7 @@ import qualified Data.Set as Set
 import Data.Set (Set)
 
 import Util
+import Expression
 import State
 import Avail
 
@@ -34,14 +34,6 @@ data Pred =
   Ptrue              |
   Pfalse
   deriving (Eq, Ord)
-
-data Expr =
-  ExprI IdentType String |
-  ExprP Expr Expr
-  deriving (Eq, Ord)
-
-data IdentType = Const | Var
-  deriving (Eq, Ord, Show)
 
 instance Show Pred where
   show (Forall a b) = concat ["V", a, " ", show b]
@@ -88,10 +80,19 @@ expr2str ps expr = case expr of
 op :: String -> Pred -> Pred -> String
 op a b c = parens $ sp [show b, a, show c]
 
-getIdentType :: String -> IdentType
-getIdentType (x:xs) = if Char.isLower x && all Char.isAlphaNum xs
-  then Var
-  else Const
+substIdentP :: String -> Expr -> Pred -> Pred
+substIdentP x y (Forall a b) = Forall a $ substQuantifier x y a b
+substIdentP x y (Exists a b) = Exists a $ substQuantifier x y a b
+substIdentP x y (Or     a b) = substIdentP x y a `Or`  substIdentP x y b
+substIdentP x y (And    a b) = substIdentP x y a `And` substIdentP x y b
+substIdentP x y (Pnot   a  ) = Pnot $ substIdentP x y a
+substIdentP x y (Stat   a  ) = Stat $ substIdentE x y a
+substIdentP x y a = error $ show a
+
+substQuantifier :: String -> Expr -> String -> Pred -> Pred
+substQuantifier x y a p = if a == x
+  then p
+  else substIdentP x y p
 
 -- Const
 
