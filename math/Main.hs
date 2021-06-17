@@ -53,11 +53,13 @@ prove cnf = if isCnfProved cnf
   then print "\n---\n\nProved!"
   else do
     print cnf
-    putStr "\n> "
-    line <- getLine
+    line <- input
     putStrLn "\n"
 
-    return ()
+input :: IO String
+input = do
+  putStr "\n>>> "
+  getLine
 
 parseAndInitSys :: String -> String -> M Pred
 parseAndInitSys file src = do
