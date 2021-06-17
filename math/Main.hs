@@ -226,7 +226,7 @@ standardizeIdent f name p = do
 
   (name, p) <- if name `elem` idents
     then do
-      let name' = getAvailIdentFromSet idents
+      let name' = getAvailIdent idents
       let p'    = renameIdentP name name' p
       return (name', p')
     else return (name, p)
@@ -253,20 +253,13 @@ renameQuantifier x y a p = if a == x
   then p
   else renameIdentP x y p
 
-getAvailIdentFromSet :: Set String -> String
-getAvailIdentFromSet = getAvailIdentFromList . Set.toList
+getAvailIdent :: (Foldable t) => t String -> String
+getAvailIdent = getAvailIdent' firstIdent
 
-getAvailIdentFromList :: [String] -> String
-getAvailIdentFromList []     = firstIdent
-getAvailIdentFromList (x:xs) = if x == firstIdent
-  then getAvailIdentFromList' x xs
-  else firstIdent
-
-getAvailIdentFromList' :: String -> [String] -> String
-getAvailIdentFromList' ident []     = nextIdent ident
-getAvailIdentFromList' ident (x:xs) = if x == nextIdent ident
-  then getAvailIdentFromList' x xs
-  else nextIdent ident
+getAvailIdent' :: (Foldable t) => String -> t String -> String
+getAvailIdent' a t = if a `elem` t
+  then getAvailIdent' (nextIdent a) t
+  else a
 
 firstIdent :: String
 firstIdent = "a"
