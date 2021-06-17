@@ -1,28 +1,32 @@
-module Util (
-  modifyLines,
-  normStr,
-  padStart,
-  padEnd,
-  sanl,
-  split,
-  cwd,
-  joinPth,
-  normPth,
-  ex,
-  exg,
-  isNat,
-  allDigits,
-  parens,
-  sp,
-  u
-) where
+module Util
+  ( modifyLines
+  , normStr
+  , padStart
+  , padEnd
+  , sanl
+  , split
+  , cwd
+  , joinPth
+  , normPth
+  , ex
+  , exg
+  , isNat
+  , allDigits
+  , parens
+  , numLines
+  , sp
+  , lf
+  , ss
+  , s2
+  , u
+  ) where
 
 import qualified Data.Char as Char
 import qualified Data.List as List
 import qualified System.Directory as Dir
 
 modifyLines :: (String -> String) -> String -> String
-modifyLines f str = List.intercalate "\n" $ map f $ sanl str
+modifyLines f str = lf $ map f $ sanl str
 
 normStr :: String -> String
 normStr = modifyLines id
@@ -91,8 +95,24 @@ allDigits str = all Char.isDigit str
 parens :: String -> String
 parens str = concat ["(", str, ")"]
 
+numLines :: [String] -> String
+numLines list = let
+  padSize = length $ show $ length list
+  in lf $ zipWith (\i s -> concat
+    [padStart padSize $ show i, ".", s2, s]
+  ) [1..] list
+
 sp :: [String] -> String
-sp = List.intercalate " "
+sp = ss " "
+
+lf :: [String] -> String
+lf = ss "\n"
+
+ss :: [a] -> [[a]] -> [a]
+ss = List.intercalate
+
+s2 :: String
+s2 = replicate 2 ' '
 
 u :: a
 u = undefined

@@ -2,6 +2,7 @@ import qualified Data.Char as Char
 import qualified Data.List as List
 import Data.Foldable
 import Control.Monad
+import System.IO
 
 import qualified Data.Set as Set
 import Data.Set (Set)
@@ -14,15 +15,17 @@ import Util
 import MonadE
 import State
 import Predicate
+import CNF
 
 type State  s = StateT s Error
 type StateP   = State  InfoP
 type M        = Either Error
 type Quantifier = String -> Pred -> Pred
 
-data InfoP = InfoP {
-  getIdentsSet :: Set String
-}
+data InfoP = InfoP
+  { getConstsSet :: Set String
+  , getVarsSet   :: Set String
+  }
 
 srcDir :: IO String
 srcDir = joinPth cwd "src"
@@ -32,6 +35,9 @@ sysFile = joinPth srcDir "system.txt"
 
 main :: IO ()
 main = do
+  mapM_ (flip hSetBuffering NoBuffering)
+    [stdin, stdout, stderr]
+
   srcDirPth <- srcDir
   filePth <- sysFile
 
@@ -40,14 +46,25 @@ main = do
 
   case parseAndInitSys file src of
     Left  err  -> putStrLn $ show err
-    Right sys  -> print sys
+    Right sys  -> prove $ pred2cnf sys
+
+prove :: CNF -> IO ()
+prove cnf = if isCnfProved cnf
+  then print "\n---\n\nProved!"
+  else do
+    print cnf
+    putStr "\n> "
+    line <- getLine
+    putStrLn "\n"
+
+    return ()
 
 parseAndInitSys :: String -> String -> M Pred
 parseAndInitSys file src = do
   let func = parseAndInitSys' file src
   let state = InfoP {
-    getIdentsSet = Set.empty
-  }
+    getVarsSet   = Set.empty,
+    getConstsSet = Set.empty}
   evalState func state
 
 parseAndInitSys' :: String -> String -> StateP Pred
@@ -119,10 +136,7 @@ parseQuantifier f node = do
 unfoldQuantifierIdents :: Quantifier -> [String] -> StateP Pred -> StateP Pred
 unfoldQuantifierIdents f []           sp = sp
 unfoldQuantifierIdents f (name:names) sp = do
-  state <- get
-  let idents = getIdentsSet state
-  put state {getIdentsSet = Set.insert name idents}
-  
+  addVar name
   p <- unfoldQuantifierIdents f names sp
   return $ f name p
 
@@ -131,11 +145,11 @@ getQuantifierIdents node = do
   isIdent <- L.s node
   if isIdent
     then do
-      name <- getIdent node
+      name <- getVar node
       return [name]
     else do
       elems <- L.elems node
-      mapM getIdent elems
+      mapM getVar elems
 
 parseExpr :: Node -> StateP Expr
 parseExpr node = do
@@ -143,18 +157,30 @@ parseExpr node = do
   if isIdent
     then do
       name <- getIdent node
-      idents <- gets getIdentsSet
+      let identType = getIdentType name
+      
+      case identType of
+        Const -> addConst name
+        Var   -> do
+          idents <- gets getVarsSet
+          if name `elem` idents
+            then return ()
+            else L.err node $ "Undefined variable " ++ show name
 
-      if name `elem` idents
-        then return ()
-        else L.err node $ "Undefined identifier " ++ show name
-
-      return $ ExprI name
+      return $ ExprI identType name
     else do
       L.lenp node 1
       elems <- L.elems node
       xs <- mapM parseExpr elems
       return $ foldl1 ExprP xs
+
+getVar :: Node -> StateP String
+getVar node = do
+  name <- getIdent node
+  case getIdentType name of
+    Const -> L.err node $ concat
+      [show name, " is not a valid variable name"]
+    Var -> return name
 
 getIdent :: Node -> StateP String
 getIdent node = do
@@ -163,11 +189,26 @@ getIdent node = do
     then L.err node $ exg "an identifier" "a predicate"
     else return name
 
+addConst :: String -> StateP ()
+addConst name = do
+  state <- get
+  let idents = getConstsSet state
+  put state {getConstsSet = Set.insert name idents}
+
+addVar :: String -> StateP ()
+addVar name = do
+  state <- get
+  let idents = getVarsSet state
+  put state {getVarsSet = Set.insert name idents}
+
 -- Init
 
 initSys :: Pred -> StateP Pred
 initSys sys = do
-  put $ InfoP {getIdentsSet = Set.empty}
+  state <- get
+  put $ state {getVarsSet = Set.empty}
+
+  sys <- return $ Pnot sys
 
   -- 1. Eliminate biconditionals and implications
   sys <- return $ elimBci sys
@@ -176,8 +217,16 @@ initSys sys = do
   sys <- return $ moveNeg sys
 
   -- 3. Standardize variables apart by renaming them
-  --    Each quantifier should use a different variable
   sys <- standardizeIdents sys
+
+  -- 4. Skolemize
+  sys <- skolemize sys
+
+  -- 5. Drop universal quantifiers
+  sys <- return $ removeUni sys
+
+  -- 6. Distribute conjuction over disjunction
+  sys <- return $ distribConj sys
 
   return sys
 
@@ -214,64 +263,83 @@ moveNeg' a@(Stat _  )  = Pnot a
 standardizeIdents :: Pred -> StateP Pred
 standardizeIdents (Forall a b) = standardizeIdent Forall a b
 standardizeIdents (Exists a b) = standardizeIdent Exists a b
-standardizeIdents (Or     a b) = liftM2 Or  (standardizeIdents a) (standardizeIdents b)
-standardizeIdents (And    a b) = liftM2 And (standardizeIdents a) (standardizeIdents b)
-standardizeIdents a@(Stat _  ) = return a
-standardizeIdents a = error $ show a
+standardizeIdents (Or     a b) = liftM2 Or   (standardizeIdents a) (standardizeIdents b)
+standardizeIdents (And    a b) = liftM2 And  (standardizeIdents a) (standardizeIdents b)
+standardizeIdents (Pnot   a  ) = liftM  Pnot (standardizeIdents a)
+standardizeIdents a            = return a
 
 standardizeIdent :: Quantifier -> String -> Pred -> StateP Pred
 standardizeIdent f name p = do
   state <- get
-  let idents = getIdentsSet state
+  let idents = getVarsSet state
 
   (name, p) <- if name `elem` idents
     then do
-      let name' = getAvailIdent idents
-      let p'    = renameIdentP name name' p
+      let name' = getAvailVar' idents name
+      let p'    = substIdentP name (ExprI Var name') p
       return (name', p')
     else return (name, p)
 
-  put $ state {getIdentsSet = Set.insert name idents}
+  put $ state {getVarsSet = Set.insert name idents}
   p <- standardizeIdents p
 
   return $ f name p
 
-renameIdentP :: String -> String -> Pred -> Pred
-renameIdentP x y (Forall a b) = Forall a $ renameQuantifier x y a b
-renameIdentP x y (Exists a b) = Exists a $ renameQuantifier x y a b
-renameIdentP x y (Stat   a  ) = Stat $ renameIdentE x y a
-renameIdentP x y a = error $ show a
+substIdentP :: String -> Expr -> Pred -> Pred
+substIdentP x y (Forall a b) = Forall a $ substQuantifier x y a b
+substIdentP x y (Exists a b) = Exists a $ substQuantifier x y a b
+substIdentP x y (Or     a b) = substIdentP x y a `Or`  substIdentP x y b
+substIdentP x y (And    a b) = substIdentP x y a `And` substIdentP x y b
+substIdentP x y (Pnot   a  ) = Pnot $ substIdentP x y a
+substIdentP x y (Stat   a  ) = Stat $ substIdentE x y a
+substIdentP x y a = error $ show a
 
-renameIdentE :: String -> String -> Expr -> Expr
-renameIdentE x y (ExprI a) = if a == x
-  then ExprI y
-  else ExprI a
-renameIdentE x y (ExprP a b) = ExprP (renameIdentE x y a) (renameIdentE x y b)
+substIdentE :: String -> Expr -> Expr -> Expr
+substIdentE x y (ExprI t a) = if a == x
+  then y
+  else ExprI t a
+substIdentE x y (ExprP a b) = ExprP (substIdentE x y a) (substIdentE x y b)
 
-renameQuantifier :: String -> String -> String -> Pred -> Pred
-renameQuantifier x y a p = if a == x
+substQuantifier :: String -> Expr -> String -> Pred -> Pred
+substQuantifier x y a p = if a == x
   then p
-  else renameIdentP x y p
+  else substIdentP x y p
 
-getAvailIdent :: (Foldable t) => t String -> String
-getAvailIdent = getAvailIdent' firstIdent
+skolemize :: Pred -> StateP Pred
+skolemize = skolemize' Set.empty
 
-getAvailIdent' :: (Foldable t) => String -> t String -> String
-getAvailIdent' a t = if a `elem` t
-  then getAvailIdent' (nextIdent a) t
-  else a
+skolemize' :: Set String -> Pred -> StateP Pred
+skolemize' idents (Forall a b) = liftM (Forall a) $ skolemize' (Set.insert a idents) b
+skolemize' idents (Exists a b) = do
+  sf <- createSkolemFunc idents
+  skolemize' idents $ substIdentP a sf b
+skolemize' idents (Or     a b) = liftM2 Or   (skolemize' idents a) (skolemize' idents b)
+skolemize' idents (And    a b) = liftM2 And  (skolemize' idents a) (skolemize' idents b)
+skolemize' idents (Pnot   a  ) = liftM  Pnot (skolemize' idents a)
+skolemize' idents a            = return a
 
-firstIdent :: String
-firstIdent = "a"
+createSkolemFunc :: Set String -> StateP Expr
+createSkolemFunc idents = do
+  consts <- gets getConstsSet
+  let sfName = getAvailConst consts
+  addConst sfName
+  let sfExpr = ExprI Const sfName
+  let exprs = map (ExprI Var) $ Set.toList idents
+  return $ foldl ExprP sfExpr exprs
 
-nextIdent :: String -> String
-nextIdent = reverse . nextIdent' . reverse
+removeUni :: Pred -> Pred
+removeUni (Forall a b) = removeUni b
+removeUni (Or     a b) = removeUni a `Or`  removeUni b
+removeUni (And    a b) = removeUni a `And` removeUni b
+removeUni (Pnot   a  ) = Pnot $ removeUni a
+removeUni a            = a
 
-nextIdent' :: String -> String
-nextIdent' []     = "a"
-nextIdent' (c:cs) = if c == 'z'
-  then 'a' : nextIdent' cs
-  else nextIdentChar c : cs
+distribConj :: Pred -> Pred
+distribConj (Or  a b) = distribConj' (distribConj a) (distribConj b)
+distribConj (And a b) = distribConj a `And` distribConj b
+distribConj a         = a
 
-nextIdentChar :: Char -> Char
-nextIdentChar c = Char.chr $ Char.ord c + 1
+distribConj' :: Pred -> Pred -> Pred
+distribConj' (And a b) c = distribConj $ (a `Or` c) `And` (b `Or` c)
+distribConj' a (And b c) = distribConj $ (a `Or` b) `And` (a `Or` c)
+distribConj' a b         = a `Or` b

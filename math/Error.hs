@@ -5,11 +5,11 @@ module Error (
 import Types
 import Util
 
-data Error = Error {
-  getErrFile :: File,
-  getErrPos  :: Pos,
-  getMsg     :: String
-}
+data Error = Error
+  { getErrFile :: File
+  , getErrPos  :: Pos
+  , getMsg     :: String
+  }
 
 instance Show Error where
   show err = let
