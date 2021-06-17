@@ -8,6 +8,9 @@ import System.IO
 import qualified Data.Set as Set
 import Data.Set (Set)
 
+import qualified Data.Map as Map
+import Data.Map (Map)
+
 import qualified Parser
 import qualified Lisp as L
 import ParserTypes
@@ -26,9 +29,10 @@ type M        = Either Error
 type Quantifier = String -> Pred -> Pred
 
 data InfoP = InfoP
-  { getConstsSet :: Set String
-  , getVarsSet   :: Set String
-  }
+  { getConstsSet  :: Set String
+  , getVarsSet    :: Set String
+  , getOpenQuants :: Map String Int
+  } deriving (Show)
 
 srcDir :: IO String
 srcDir = joinPth cwd "src"
@@ -38,24 +42,6 @@ sysFile = joinPth srcDir "system.txt"
 
 main :: IO ()
 main = do
-  let a = ExprI Var "a"
-  let lhs = ExprP a a
-  let rhs = ExprP (ExprP (ExprI Const "A") (ExprI Var "b"))
-                  (ExprP (ExprI Var "c") (ExprI Const "B"))
-
-  let sys = Set.singleton $ makeEq lhs rhs
-  putStrLn $ uncurry (\lhs rhs -> concat [show lhs, " - ", show rhs]) $ fromJust $ fstElem sys
-  putStrLn ""
-
-  case solve sys of
-    Nothing   -> putStrLn "/"
-    Just list -> do
-      print $ foldl
-        (\expr (s, e) -> substIdentE s e expr)
-        lhs list
-
-main1 :: IO ()
-main1 = do
   mapM_ (flip hSetBuffering NoBuffering)
     [stdin, stdout, stderr]
 
@@ -88,8 +74,9 @@ parseAndInitSys :: String -> String -> M Pred
 parseAndInitSys file src = do
   let func = parseAndInitSys' file src
   let state = InfoP {
-    getVarsSet   = Set.empty,
-    getConstsSet = Set.empty}
+    getVarsSet    = Set.empty,
+    getConstsSet  = Set.empty,
+    getOpenQuants = Map.empty}
   evalState func state
 
 parseAndInitSys' :: String -> String -> StateP Pred
@@ -162,7 +149,9 @@ unfoldQuantifierIdents :: Quantifier -> [String] -> StateP Pred -> StateP Pred
 unfoldQuantifierIdents f []           sp = sp
 unfoldQuantifierIdents f (name:names) sp = do
   addVar name
+  openQuant name
   p <- unfoldQuantifierIdents f names sp
+  closeQuant name
   return $ f name p
 
 getQuantifierIdents :: Node -> StateP [String]
@@ -187,8 +176,8 @@ parseExpr node = do
       case identType of
         Const -> addConst name
         Var   -> do
-          idents <- gets getVarsSet
-          if name `elem` idents
+          isq <- isQuantified name
+          if isq
             then return ()
             else L.err node $ "Undefined variable " ++ show name
 
@@ -226,12 +215,32 @@ addVar name = do
   let idents = getVarsSet state
   put state {getVarsSet = Set.insert name idents}
 
+isQuantified :: String -> StateP Bool
+isQuantified name = do
+  quants <- gets getOpenQuants
+  case Map.lookup name quants of
+    Nothing -> return False
+    Just n  -> return $ n /= 0
+
+openQuant :: String -> StateP ()
+openQuant = updateQuant 1
+
+closeQuant :: String -> StateP ()
+closeQuant = updateQuant (-1)
+
+updateQuant :: Int -> String -> StateP ()
+updateQuant n name = do
+  state <- get
+  let quants = getOpenQuants state
+  let quants' = Map.insertWith (+) name n quants
+  put $ state {getOpenQuants = quants'}
+
 -- Init
 
 initSys :: Pred -> StateP Pred
 initSys sys = do
-  state <- get
-  put $ state {getVarsSet = Set.empty}
+  -- state <- get
+  -- put $ state {getVarsSet = Set.empty}
 
   sys <- return $ Pnot sys
 
@@ -241,6 +250,8 @@ initSys sys = do
   -- 2. Move negation inwards
   sys <- return $ moveNeg sys
 
+  -- a<-get
+  -- error$(show$a)++replicate 10'\n'
   -- 3. Standardize variables apart by renaming them
   sys <- standardizeIdents sys
 
