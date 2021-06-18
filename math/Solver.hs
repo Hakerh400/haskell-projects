@@ -15,9 +15,9 @@ import CNF
 
 type Equation = (Expr, Expr)
 
-solve :: Set Equation -> Maybe [(String, Expr)]
+solve :: Set Equation -> Maybe (Map String Expr)
 solve eqs = case fstElem eqs of
-  Nothing -> return []
+  Nothing -> return $ Map.empty
   Just eq -> do
     eqs <- return $ Set.delete eq eqs
     let (lhs, rhs) = eq
@@ -40,7 +40,7 @@ solve eqs = case fstElem eqs of
         else do
           eqs <- return $ mapSet (mapPair $ substIdentE a rhs) eqs
           sol <- solve eqs
-          return $ (a, rhs) : sol
+          return $ Map.insert a (substIdentsE sol rhs) sol
 
 makeEq :: Expr -> Expr -> Equation
 makeEq = sortPair

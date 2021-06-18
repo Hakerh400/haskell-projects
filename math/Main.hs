@@ -86,8 +86,8 @@ combineClauses :: Int -> Int -> Int -> Int -> CNF -> ECNF
 combineClauses i1 j1 i2 j2 cnf = do
   let clauses = cnf2clauses cnf
 
-  let clause1 = clause2set $ setGet i1 clauses
-  let clause2 = clause2set $ setGet i2 clauses
+  let clause1 = clause2set $ clauses !! i1
+  let clause2 = clause2set $ clauses !! i2
 
   let item1 = setGet j1 clause1
   let item2 = setGet j2 clause2
@@ -120,8 +120,8 @@ combineClauses i1 j1 i2 j2 cnf = do
       let c1 = Set.delete item1 $ Set.fromList clause1'
       let c2 = Set.delete item2 clause2
 
-      let c1' = foldr substIdentClause' c1 sol
-      let c2' = foldr substIdentClause' c2 sol
+      let c1' = substIdentClause sol c1
+      let c2' = substIdentClause sol c2
 
       let cNew = Clause $ c1' `Set.union` c2'
 
@@ -129,17 +129,20 @@ combineClauses i1 j1 i2 j2 cnf = do
         then Left "Tautology"
         else return ()
 
-      let cnf' = CNF $ Set.insert cNew clauses
+      cnf' <- return $ CNF $ if cNew `elem` clauses
+        then clauses
+        else clauses ++ [cNew]
+
       return cnf'
 
 removeClause :: Int -> CNF -> ECNF
 removeClause i cnf = do
   let clauses = cnf2clauses cnf
 
-  if i < Set.size clauses
+  if i < length clauses
     then do
-      let clause = setGet i clauses
-      return $ CNF $ Set.delete clause clauses
+      let clause = clauses !! i
+      return $ CNF $ filter (/= clause) clauses
     else Left "Out of range"
 
 input :: IO String

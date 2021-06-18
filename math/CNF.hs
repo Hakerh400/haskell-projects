@@ -14,7 +14,6 @@ module CNF
   , clause2set
   , substZippedItems
   , substIdentClause
-  , substIdentClause'
   , mapClause
   ) where
 
@@ -23,11 +22,14 @@ import qualified Data.List as List
 import qualified Data.Set as Set
 import Data.Set (Set)
 
+import qualified Data.Map as Map
+import Data.Map (Map)
+
 import Predicate
 import Expression
 import Util
 
-newtype CNF = CNF (Set Clause)
+newtype CNF = CNF [Clause]
 
 newtype Clause = Clause (Set Item)
   deriving (Eq)
@@ -47,7 +49,7 @@ instance Ord Clause where
       a  -> a
 
 instance Show CNF where
-  show (CNF conjs) = conjs2str conjs
+  show (CNF clauses) = clauses2str clauses
 
 instance Show Item where
   show (Item sign a) = show sign ++ show a
@@ -56,8 +58,8 @@ instance Show ItemSign where
   show ItemP = ""
   show ItemN = "~"
 
-conjs2str :: Set (Clause) -> String
-conjs2str = numLines . map disj2str . Set.toList
+clauses2str :: [Clause] -> String
+clauses2str = numLines . map disj2str
 
 disj2str :: Clause -> String
 disj2str = ss disjSep . map show . Set.toList . clause2set
@@ -67,8 +69,8 @@ clause2set (Clause a) = a
 
 pred2cnf :: Pred -> CNF
 pred2cnf p = CNF $
-  Set.filter (not . isClauseTaut) $
-  pred2cnfConj p
+  filter (not . isClauseTaut) $
+  Set.toList $ pred2cnfConj p
 
 pred2cnfConj :: Pred -> Set (Clause)
 pred2cnfConj (And a b) = pred2cnfConj a `Set.union` pred2cnfConj b
@@ -112,7 +114,7 @@ predHasTrue _        = False
 disjSep :: String
 disjSep = concat [s2, "|", s2]
 
-cnf2clauses :: CNF -> Set (Clause)
+cnf2clauses :: CNF -> [Clause]
 cnf2clauses (CNF a) = a
 
 item2expr :: Item -> Expr
@@ -127,11 +129,8 @@ substZippedItems = map . substZippedItem
 substZippedItem :: (String, String) -> Item -> Item
 substZippedItem = mapItem . substZippedExpr
 
-substIdentClause :: String -> Expr -> Set Item -> Set Item
-substIdentClause a b = mapSet . mapItem $ substIdentE a b
-
-substIdentClause' :: (String, Expr) -> Set Item -> Set Item
-substIdentClause' = uncurry substIdentClause
+substIdentClause :: Map String Expr -> Set Item -> Set Item
+substIdentClause m = mapSet . mapItem $ substIdentsE m
 
 mapClause :: (Set Item -> Set Item) -> Clause -> Clause
 mapClause f (Clause a) = Clause $ f a

@@ -1,10 +1,15 @@
-(~ (&
 (all (a b)
   (P a (P b a))
+)
+
+(all (a b c)
+  (P (P a (P b c)) (P (P a b) (P a c)))
 )
 
 (all (a b) (->
   (P a b)
   a
   b
-))))
+))
+
+(all a (P a a))
