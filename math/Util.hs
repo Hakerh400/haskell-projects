@@ -11,6 +11,7 @@ module Util
   , fstElem
   , sortPair
   , mapSet
+  , mapSet'
   , filterSet
   , setAsList
   , setAsList'
@@ -104,6 +105,9 @@ sortPair a b = if a <= b
 
 mapSet :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
 mapSet = setAsList . map
+
+mapSet' :: (Ord a, Ord b) => (a -> b) -> Set a -> [b]
+mapSet' = setAsList' . map
 
 filterSet :: (Ord a) => (a -> Bool) -> Set a -> Set a
 filterSet = setAsList . filter

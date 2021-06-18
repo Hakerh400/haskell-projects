@@ -92,7 +92,8 @@ induction src cnf =  case Parser.parse "induction-expr" src of
   Right sys -> case getElem sys of
     (List (uni:[])) -> do
       sys <- return $ substNodeF (Ident "*") (\node -> substNode (Ident "*") node uni) inductionScheme
-      case parseAndInitSys "induction" $ concat ["(~ ", tail $ show sys] of
+      let consts = cnfGetConsts cnf
+      case parseAndInitSys' consts "induction" $ concat ["(~ ", tail $ init $ show sys, ")"] of
         Left  err -> Left $ show err
         Right sys -> return $ pred2cnf sys
     _ -> Left "Must have exactly one element"
@@ -153,8 +154,8 @@ combineClauses i1 j1 i2 j2 cnf = do
   let expr1 = item2expr item1
   let expr2 = item2expr item2
 
-  let vars1 = getVars expr1
-  let vars2 = getVars expr2
+  let vars1 = clauseGetVars $ Clause clause1
+  let vars2 = clauseGetVars $ Clause clause2
   let allVars =  vars1 `Set.union` vars2
   let collisions = filterSet (`elem` vars2) vars1
 
@@ -209,20 +210,20 @@ parseSys :: String -> String -> M Pred
 parseSys = parseSys' Set.empty
 
 parseSys' :: Set String -> String -> String -> M Pred
-parseSys' vars = parseAndInitSys1 False vars
+parseSys' consts = parseAndInitSys1 False consts
 
 parseAndInitSys :: String -> String -> M Pred
 parseAndInitSys = parseAndInitSys' Set.empty
 
 parseAndInitSys' :: Set String -> String -> String -> M Pred
-parseAndInitSys' vars = parseAndInitSys1 True vars
+parseAndInitSys' consts = parseAndInitSys1 True consts
 
 parseAndInitSys1 :: Bool -> Set String -> String -> String -> M Pred
-parseAndInitSys1 init' vars file src = do
+parseAndInitSys1 init' consts file src = do
   let func = parseAndInitSys2 init' file src
   let state = InfoP {
-    getVarsSet    = vars,
-    getConstsSet  = Set.empty,
+    getVarsSet    = Set.empty,
+    getConstsSet  = consts,
     getOpenQuants = Map.empty}
   evalState func state
 

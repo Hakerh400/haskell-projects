@@ -2,11 +2,12 @@ module Expression
   ( Expr(..)
   , IdentType(..)
   , getIdentType
-  , getVars
   , hasVar
   , substIdentE
   , substIdentsE
   , substZippedExpr
+  , exprGetConsts
+  , exprGetVars
   ) where
 
 import qualified Data.Char as Char
@@ -30,13 +31,13 @@ getIdentType (x:xs) = if Char.isLower x && all Char.isAlphaNum xs
   then Var
   else Const
 
-getVars :: Expr -> Set String
-getVars (ExprI Const _) = Set.empty
-getVars (ExprI Var   a) = Set.singleton a
-getVars (ExprP a     b) = getVars a `Set.union` getVars b
+exprGetVars :: Expr -> Set String
+exprGetVars (ExprI Const _) = Set.empty
+exprGetVars (ExprI Var   a) = Set.singleton a
+exprGetVars (ExprP a     b) = exprGetVars a `Set.union` exprGetVars b
 
 hasVar :: String -> Expr -> Bool
-hasVar name expr = name `elem` getVars expr
+hasVar name expr = name `elem` exprGetVars expr
 
 substIdentE :: String -> Expr -> Expr -> Expr
 substIdentE x y (ExprI t a) = if a == x
@@ -52,3 +53,8 @@ substIdentsE m (ExprP a b) = ExprP (substIdentsE m a) (substIdentsE m b)
 
 substZippedExpr :: (String, String) -> Expr -> Expr
 substZippedExpr (name1, name2) expr = substIdentE name1 (ExprI Var name2) expr
+
+exprGetConsts :: Expr -> Set String
+exprGetConsts (ExprP a     b) = exprGetConsts a `Set.union` exprGetConsts b
+exprGetConsts (ExprI Const a) = Set.singleton a
+exprGetConsts (ExprI Var   a) = Set.empty

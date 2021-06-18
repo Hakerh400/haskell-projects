@@ -17,6 +17,12 @@ module CNF
   , mapClause
   , cnfAddCNF
   , cnfAddClause
+  , cnfGetConsts
+  , clauseGetConsts
+  , itemGetConsts
+  , cnfGetVars
+  , clauseGetVars
+  , itemGetVars
   ) where
 
 import qualified Data.List as List
@@ -144,3 +150,21 @@ cnfAddClause :: Clause -> CNF -> CNF
 cnfAddClause clause (CNF cs) = CNF $ if clause `elem` cs
   then cs
   else cs ++ [clause]
+
+cnfGetConsts :: CNF -> Set String
+cnfGetConsts (CNF clauses) = Set.unions $ map clauseGetConsts clauses
+
+clauseGetConsts :: Clause -> Set String
+clauseGetConsts (Clause set) = Set.unions $ mapSet' itemGetConsts set
+
+itemGetConsts :: Item -> Set String
+itemGetConsts (Item _ expr) = exprGetConsts expr
+
+cnfGetVars :: CNF -> Set String
+cnfGetVars (CNF clauses) = Set.unions $ map clauseGetVars clauses
+
+clauseGetVars :: Clause -> Set String
+clauseGetVars (Clause set) = Set.unions $ mapSet' itemGetVars set
+
+itemGetVars :: Item -> Set String
+itemGetVars (Item _ expr) = exprGetVars expr
