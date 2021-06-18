@@ -1,3 +1,10 @@
-(all a (-> (F a) (G a)))
-(exi a (F a))
-(exi a (G a))
+(~ (&
+(all (a b)
+  (P a (P b a))
+)
+
+(all (a b) (->
+  (P a b)
+  a
+  b
+))))

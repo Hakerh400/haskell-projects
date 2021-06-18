@@ -24,10 +24,11 @@ import CNF
 import Solver
 import Avail
 
-type State  s = StateT s Error
-type StateP   = State  InfoP
-type M        = Either Error
+type State  s   = StateT s Error
+type StateP     = State  InfoP
+type M          = Either Error
 type Quantifier = String -> Pred -> Pred
+type ECNF       = Either String CNF
 
 data InfoP = InfoP
   { getConstsSet  :: Set String
@@ -58,24 +59,42 @@ main = do
 
 prove :: CNF -> IO ()
 prove cnf = if isCnfProved cnf
-  then putStrLn "\n---\n\nProved!"
+  then putStrLn "---\n\nProved!"
   else do
-    -- line <- input
-    -- putStrLn "\n"
-
     print cnf
-    putStrLn ""
-    combineClauses cnf 0 0 1 1
 
-combineClauses :: CNF -> Int -> Int -> Int -> Int -> IO ()
-combineClauses cnf i1 j1 i2 j2 = do
+    line <- input
+    let ws = words line
+
+    case length ws of
+      0 -> return () -- putStrLn "Terminating"
+      1 -> do
+        let i = read line - 1
+        updateCNF (removeClause i) cnf
+      4 -> do
+        let indices = map (dec . read) $ words line
+        let (i1:j1:i2:j2:_) = indices
+        updateCNF (combineClauses i1 j1 i2 j2) cnf
+      _ -> putStrLn "Unknown command" >> prove cnf
+
+updateCNF :: (CNF -> ECNF) -> CNF -> IO ()
+updateCNF f cnf = case f cnf of
+  Left  err -> putStrLn (err ++ "\n") >> prove cnf
+  Right cnf -> prove cnf
+
+combineClauses :: Int -> Int -> Int -> Int -> CNF -> ECNF
+combineClauses i1 j1 i2 j2 cnf = do
   let clauses = cnf2clauses cnf
 
-  let clause1 = setGet i1 clauses
-  let clause2 = setGet i2 clauses
+  let clause1 = clause2set $ setGet i1 clauses
+  let clause2 = clause2set $ setGet i2 clauses
 
   let item1 = setGet j1 clause1
   let item2 = setGet j2 clause2
+
+  if getItemSign item1 == getItemSign item2
+    then Left "Same sign"
+    else return ()
 
   let expr1 = item2expr item1
   let expr2 = item2expr item2
@@ -96,7 +115,7 @@ combineClauses cnf i1 j1 i2 j2 = do
   let eq = makeEq lhs rhs
 
   case solve $ Set.fromList [eq] of
-    Nothing  -> print "/"
+    Nothing  -> Left "Incompatible"
     Just sol -> do
       let c1 = Set.delete item1 $ Set.fromList clause1'
       let c2 = Set.delete item2 clause2
@@ -104,14 +123,24 @@ combineClauses cnf i1 j1 i2 j2 = do
       let c1' = foldr substIdentClause' c1 sol
       let c2' = foldr substIdentClause' c2 sol
 
-      let cNew = c1' `Set.union` c2'
+      let cNew = Clause $ c1' `Set.union` c2'
 
       if isClauseTaut cNew
-        then error "taut"
+        then Left "Tautology"
         else return ()
 
       let cnf' = CNF $ Set.insert cNew clauses
-      print cnf'
+      return cnf'
+
+removeClause :: Int -> CNF -> ECNF
+removeClause i cnf = do
+  let clauses = cnf2clauses cnf
+
+  if i < Set.size clauses
+    then do
+      let clause = setGet i clauses
+      return $ CNF $ Set.delete clause clauses
+    else Left "Out of range"
 
 input :: IO String
 input = do

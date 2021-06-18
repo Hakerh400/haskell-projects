@@ -27,6 +27,8 @@ module Util
   , ss
   , s2
   , u
+  , inc
+  , dec
   ) where
 
 import qualified Data.Char as Char
@@ -154,3 +156,9 @@ s2 = replicate 2 ' '
 
 u :: a
 u = undefined
+
+inc :: (Num a) => a -> a
+inc a = a + 1
+
+dec :: (Num a) => a -> a
+dec a = a - 1
