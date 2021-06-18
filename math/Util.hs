@@ -30,6 +30,7 @@ module Util
   , u
   , inc
   , dec
+  , fromRight
   ) where
 
 import qualified Data.Char as Char
@@ -168,3 +169,6 @@ inc a = a + 1
 
 dec :: (Num a) => a -> a
 dec a = a - 1
+
+fromRight :: Either a b -> b
+fromRight (Right a) = a

@@ -9,25 +9,26 @@ import qualified Data.List as List
 
 import Util
 
-data File = File {
-  getFname :: String,
-  getFsrc  :: String
-}
+data File = File
+  { getFname :: String
+  , getFsrc  :: String
+  } deriving (Eq)
 
-data Pos = Pos {
-  getRow :: Int,
-  getCol :: Int
-}
+data Pos = Pos
+  { getRow :: Int
+  , getCol :: Int
+  } deriving (Eq)
 
-data Node = Node {
-  getFile :: File,
-  getPos  :: Pos,
-  getElem :: Elem
-}
+data Node = Node
+  { getFile :: File
+  , getPos  :: Pos
+  , getElem :: Elem
+  } deriving (Eq)
 
 data Elem =
   Ident String |
   List  [Node]
+  deriving (Eq)
 
 instance Show Node where
   show = show . getElem

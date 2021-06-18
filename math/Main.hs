@@ -66,20 +66,67 @@ prove cnf = if isCnfProved cnf
     line <- input
     let ws = words line
 
-    case length ws of
-      0 -> return () -- putStrLn "Terminating"
-      1 -> updateCNF cnf $ do
-        i <- str2nat line
-        removeClause (dec i) cnf
-      4 -> updateCNF cnf $ do
-        indices <- mapM str2nat ws
-        let (i1:j1:i2:j2:_) = map dec indices
-        combineClauses i1 j1 i2 j2 cnf
-      _ -> putStrLn "Unknown command\n" >> prove cnf
+    updateCNF cnf $ case line of
+      [] -> Left ""
+      ('.':src) -> do
+          cnf' <- induction src cnf
+          return $ cnfAddCNF cnf' cnf
+      _ -> case length ws of
+        1 -> do
+          i <- str2nat line
+          removeClause (dec i) cnf
+        4 -> do
+          indices <- mapM str2nat ws
+          let (i1:j1:i2:j2:_) = map dec indices
+          combineClauses i1 j1 i2 j2 cnf
+        _ -> Left "Unknown command"
+
+inductionScheme :: Node
+inductionScheme = let
+  src = "(-> (* 0) (all n (-> (* n) (* (S n)))) (all n (* n)))"
+  in fromRight $ Parser.parse "induction-scheme" src
+
+induction :: String -> CNF -> ECNF
+induction src cnf =  case Parser.parse "induction-expr" src of
+  Left  err -> Left $ show err
+  Right sys -> case getElem sys of
+    (List (uni:[])) -> do
+      sys <- return $ substNodeF (Ident "*") (\node -> substNode (Ident "*") node uni) inductionScheme
+      case parseAndInitSys "induction" $ concat ["(~ ", tail $ show sys] of
+        Left  err -> Left $ show err
+        Right sys -> return $ pred2cnf sys
+    _ -> Left "Must have exactly one element"
+
+substNodeF :: Elem -> (Node -> Node) -> Node -> Node
+substNodeF a f node = let
+  e = getElem node
+  d = node {getElem = substElemF a f e}
+  in case getElem node of
+    List (x:y:[]) -> if getElem x == a
+      then f y
+      else d
+    a -> d
+
+substElemF :: Elem -> (Node -> Node) -> Elem -> Elem
+substElemF a f (List nodes) = List $ map (substNodeF a f) nodes
+substElemF a f c            = c
+
+substNode :: Elem -> Node -> Node -> Node
+substNode a b node = let
+  e = getElem node
+  in if e == a
+    then b
+    else node {getElem = substElem a b e}
+
+substElem :: Elem -> Node -> Elem -> Elem
+substElem a b (List nodes) = List $ map (substNode a b) nodes
+substElem a b c            = c
 
 updateCNF :: CNF -> ECNF -> IO ()
-updateCNF cnf (Left  err) = putStrLn (err ++ "\n") >> prove cnf
 updateCNF _   (Right cnf) = prove cnf
+updateCNF cnf (Left  err) = if null err
+  then return ()
+  else putStrLn (err ++ "\n") >> prove cnf
 
 combineClauses :: Int -> Int -> Int -> Int -> CNF -> ECNF
 combineClauses i1 j1 i2 j2 cnf = do
@@ -136,11 +183,7 @@ combineClauses i1 j1 i2 j2 cnf = do
         then Left "Tautology"
         else return ()
 
-      cnf' <- return $ CNF $ if cNew `elem` clauses
-        then clauses
-        else clauses ++ [cNew]
-
-      return cnf'
+      return $ cnfAddClause cNew cnf
 
 removeClause :: Int -> CNF -> ECNF
 removeClause i cnf = do
@@ -162,25 +205,39 @@ input = do
 rangeError :: Either String a
 rangeError = Left "Out of range"
 
+parseSys :: String -> String -> M Pred
+parseSys = parseSys' Set.empty
+
+parseSys' :: Set String -> String -> String -> M Pred
+parseSys' vars = parseAndInitSys1 False vars
+
 parseAndInitSys :: String -> String -> M Pred
-parseAndInitSys file src = do
-  let func = parseAndInitSys' file src
+parseAndInitSys = parseAndInitSys' Set.empty
+
+parseAndInitSys' :: Set String -> String -> String -> M Pred
+parseAndInitSys' vars = parseAndInitSys1 True vars
+
+parseAndInitSys1 :: Bool -> Set String -> String -> String -> M Pred
+parseAndInitSys1 init' vars file src = do
+  let func = parseAndInitSys2 init' file src
   let state = InfoP {
-    getVarsSet    = Set.empty,
+    getVarsSet    = vars,
     getConstsSet  = Set.empty,
     getOpenQuants = Map.empty}
   evalState func state
 
-parseAndInitSys' :: String -> String -> StateP Pred
-parseAndInitSys' file src = do
+parseAndInitSys2 :: Bool -> String -> String -> StateP Pred
+parseAndInitSys2 init' file src = do
   parsed <- either2state $ Parser.parse file src
-  sys <- parseSys parsed
-  initSys sys
+  sys <- parseSysRaw parsed
+  if init'
+    then initSys sys
+    else return sys
 
 -- Parse
 
-parseSys :: Node -> StateP Pred
-parseSys node = do
+parseSysRaw :: Node -> StateP Pred
+parseSysRaw node = do
   elems <- L.elems node
   let mainNode = node {
     getElem = List $
