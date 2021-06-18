@@ -5,6 +5,7 @@ module Expression
   , getVars
   , hasVar
   , substIdentE
+  , substZippedExpr
   ) where
 
 import qualified Data.Char as Char
@@ -38,3 +39,6 @@ substIdentE x y (ExprI t a) = if a == x
   then y
   else ExprI t a
 substIdentE x y (ExprP a b) = ExprP (substIdentE x y a) (substIdentE x y b)
+
+substZippedExpr :: (String, String) -> Expr -> Expr
+substZippedExpr (name1, name2) expr = substIdentE name1 (ExprI Var name2) expr

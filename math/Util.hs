@@ -11,7 +11,11 @@ module Util
   , fstElem
   , sortPair
   , mapSet
+  , filterSet
+  , setAsList
+  , setAsList'
   , mapPair
+  , setGet
   , ex
   , exg
   , isNat
@@ -95,10 +99,22 @@ sortPair a b = if a <= b
   else (b, a)
 
 mapSet :: (Ord a, Ord b) => (a -> b) -> Set a -> Set b
-mapSet f set = Set.fromList $ map f $ Set.toList set
+mapSet = setAsList . map
+
+filterSet :: (Ord a) => (a -> Bool) -> Set a -> Set a
+filterSet = setAsList . filter
+
+setAsList :: (Ord a, Ord b) => ([a] -> [b]) -> Set a -> Set b
+setAsList f = Set.fromList . f . Set.toList
+
+setAsList' :: (Ord a, Ord b) => ([a] -> [b]) -> Set a -> [b]
+setAsList' f = f . Set.toList
 
 mapPair :: (a -> b) -> (a, a) -> (b, b)
 mapPair f (a, b) = (f a, f b)
+
+setGet :: (Ord a) => Int -> Set a -> a
+setGet i set = Set.toList set !! i
 
 ex :: String -> String
 ex expected = "Expected " ++ expected

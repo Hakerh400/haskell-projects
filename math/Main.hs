@@ -22,6 +22,7 @@ import Predicate
 import Expression
 import CNF
 import Solver
+import Avail
 
 type State  s = StateT s Error
 type StateP   = State  InfoP
@@ -59,9 +60,58 @@ prove :: CNF -> IO ()
 prove cnf = if isCnfProved cnf
   then putStrLn "\n---\n\nProved!"
   else do
-    print cnf
     -- line <- input
     -- putStrLn "\n"
+
+    print cnf
+    putStrLn ""
+    combineClauses cnf 0 0 1 1
+
+combineClauses :: CNF -> Int -> Int -> Int -> Int -> IO ()
+combineClauses cnf i1 j1 i2 j2 = do
+  let clauses = cnf2clauses cnf
+
+  let clause1 = setGet i1 clauses
+  let clause2 = setGet i2 clauses
+
+  let item1 = setGet j1 clause1
+  let item2 = setGet j2 clause2
+
+  let expr1 = item2expr item1
+  let expr2 = item2expr item2
+
+  let vars1 = getVars expr1
+  let vars2 = getVars expr2
+  let allVars =  vars1 `Set.union` vars2
+  let collisions = filterSet (`elem` vars2) vars1
+
+  let availsSequence = getAvails getAvailVar collisions
+  let zippedVars = setAsList' (`zip` availsSequence) collisions
+
+  let clause1' = foldr substZippedItems (Set.toList clause1) zippedVars
+  let expr1' = item2expr $ clause1' !! j1
+
+  let lhs = expr1'
+  let rhs = expr2
+  let eq = makeEq lhs rhs
+
+  case solve $ Set.fromList [eq] of
+    Nothing  -> print "/"
+    Just sol -> do
+      let c1 = Set.delete item1 $ Set.fromList clause1'
+      let c2 = Set.delete item2 clause2
+
+      let c1' = foldr substIdentClause' c1 sol
+      let c2' = foldr substIdentClause' c2 sol
+
+      let cNew = c1' `Set.union` c2'
+
+      if isClauseTaut cNew
+        then error "taut"
+        else return ()
+
+      let cnf' = CNF $ Set.insert cNew clauses
+      print cnf'
 
 input :: IO String
 input = do
