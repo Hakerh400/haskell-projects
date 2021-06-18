@@ -19,6 +19,7 @@ module Util
   , ex
   , exg
   , isNat
+  , str2nat
   , allDigits
   , parens
   , numLines
@@ -128,6 +129,11 @@ isNat :: String -> Bool
 isNat ('0':[]) = True
 isNat ('0':_)  = False
 isNat xs       = allDigits xs
+
+str2nat :: String -> Either String Int
+str2nat str = if isNat str
+  then return $ read str
+  else Left "Invalid number"
 
 allDigits :: String -> Bool
 allDigits str = all Char.isDigit str

@@ -68,26 +68,33 @@ prove cnf = if isCnfProved cnf
 
     case length ws of
       0 -> return () -- putStrLn "Terminating"
-      1 -> do
-        let i = read line - 1
-        updateCNF (removeClause i) cnf
-      4 -> do
-        let indices = map (dec . read) $ words line
-        let (i1:j1:i2:j2:_) = indices
-        updateCNF (combineClauses i1 j1 i2 j2) cnf
-      _ -> putStrLn "Unknown command" >> prove cnf
+      1 -> updateCNF cnf $ do
+        i <- str2nat line
+        removeClause (dec i) cnf
+      4 -> updateCNF cnf $ do
+        indices <- mapM str2nat ws
+        let (i1:j1:i2:j2:_) = map dec indices
+        combineClauses i1 j1 i2 j2 cnf
+      _ -> putStrLn "Unknown command\n" >> prove cnf
 
-updateCNF :: (CNF -> ECNF) -> CNF -> IO ()
-updateCNF f cnf = case f cnf of
-  Left  err -> putStrLn (err ++ "\n") >> prove cnf
-  Right cnf -> prove cnf
+updateCNF :: CNF -> ECNF -> IO ()
+updateCNF cnf (Left  err) = putStrLn (err ++ "\n") >> prove cnf
+updateCNF _   (Right cnf) = prove cnf
 
 combineClauses :: Int -> Int -> Int -> Int -> CNF -> ECNF
 combineClauses i1 j1 i2 j2 cnf = do
   let clauses = cnf2clauses cnf
 
+  if i1 >= length clauses || i2 >= length clauses
+    then rangeError
+    else return ()
+
   let clause1 = clause2set $ clauses !! i1
   let clause2 = clause2set $ clauses !! i2
+
+  if j1 >= Set.size clause1 || j2 >= Set.size clause2
+    then rangeError
+    else return ()
 
   let item1 = setGet j1 clause1
   let item2 = setGet j2 clause2
@@ -139,11 +146,11 @@ removeClause :: Int -> CNF -> ECNF
 removeClause i cnf = do
   let clauses = cnf2clauses cnf
 
-  if i < length clauses
-    then do
+  if i >= length clauses
+    then rangeError
+    else do
       let clause = clauses !! i
       return $ CNF $ filter (/= clause) clauses
-    else Left "Out of range"
 
 input :: IO String
 input = do
@@ -151,6 +158,9 @@ input = do
   line <- getLine
   putStrLn ""
   return line
+
+rangeError :: Either String a
+rangeError = Left "Out of range"
 
 parseAndInitSys :: String -> String -> M Pred
 parseAndInitSys file src = do

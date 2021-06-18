@@ -1,15 +1,7 @@
-(all (a b)
-  (P a (P b a))
-)
+(all x (= x x))
+(all (x y) (-> (= x y) (= y x)))
+(all (x y z) (-> (= x y) (= y z) (= x z)))
+(all (m n) (<-> (= m n) (= (S m) (S n))))
+(all n (~ (= (S n) 0)))
 
-(all (a b c)
-  (P (P a (P b c)) (P (P a b) (P a c)))
-)
-
-(all (a b) (->
-  (P a b)
-  a
-  b
-))
-
-(all a (P a a))
+(~ (= (S 0) (S (S 0))))
