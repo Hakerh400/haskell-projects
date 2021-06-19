@@ -1,0 +1,7 @@
+(Func F)
+(all a (Func (F a)))
+
+(= A C)
+(= B D)
+
+(= (F A B) (F C D))

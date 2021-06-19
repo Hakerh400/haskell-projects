@@ -2,6 +2,7 @@ module CNF
   ( CNF(..)
   , Clause(..)
   , Item(..)
+  , ItemSign(..)
   , pred2cnf
   , isCnfProved
   , invItem
@@ -15,7 +16,7 @@ module CNF
   , substZippedItems
   , substIdentClause
   , mapClause
-  , cnfAddCNF
+  , cnfMerge
   , cnfAddClause
   , cnfGetConsts
   , clauseGetConsts
@@ -143,8 +144,8 @@ substIdentClause m = mapSet . mapItem $ substIdentsE m
 mapClause :: (Set Item -> Set Item) -> Clause -> Clause
 mapClause f (Clause a) = Clause $ f a
 
-cnfAddCNF :: CNF -> CNF -> CNF
-cnfAddCNF (CNF cs) cnf = foldr cnfAddClause cnf cs
+cnfMerge :: CNF -> CNF -> CNF
+cnfMerge cnf (CNF cs) = foldr cnfAddClause cnf cs
 
 cnfAddClause :: Clause -> CNF -> CNF
 cnfAddClause clause (CNF cs) = CNF $ if clause `elem` cs

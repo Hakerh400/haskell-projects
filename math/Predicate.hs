@@ -108,7 +108,7 @@ getAvailConst' = snd $ createAvailIdentFuncs constChars
 -- Var
 
 varChars :: String
-varChars = ['a'..'z']
+varChars = filter (not . (`elem` "ol")) ['a'..'z']
 
 getAvailVar :: (Foldable t) => t String -> String
 getAvailVar = fst $ createAvailIdentFuncs varChars

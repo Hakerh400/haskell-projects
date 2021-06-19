@@ -4,6 +4,7 @@ import Data.Maybe
 import Data.Foldable
 import Control.Monad
 import System.IO
+import System.Exit
 
 import qualified Data.Set as Set
 import Data.Set (Set)
@@ -36,26 +37,34 @@ data InfoP = InfoP
   , getOpenQuants :: Map String Int
   } deriving (Show)
 
-srcDir :: IO String
-srcDir = joinPth cwd "src"
-
-sysFile :: IO String
-sysFile = joinPth srcDir "system.txt"
+mathDir :: IO String
+mathDir = joinPth cwd "math"
 
 main :: IO ()
 main = do
   mapM_ (flip hSetBuffering NoBuffering)
     [stdin, stdout, stderr]
 
-  srcDirPth <- srcDir
-  filePth <- sysFile
+  baseFile <- joinPth mathDir "base.txt"
+  statFile <- joinPth mathDir "stat.txt"
 
-  let file = drop (length srcDirPth + 1) filePth
-  src <- readFile filePth
+  baseSrc <- readFile baseFile
+  statSrc <- readFile statFile
 
-  case parseAndInitSys file src of
-    Left  err  -> putStrLn $ show err
-    Right sys  -> prove $ pred2cnf sys
+  statCNF <- ei2io $ parseAndInitCNF "stat" statSrc
+
+  let baseSrc' = concat ["(~ (& ", baseSrc, "))"]
+  let statConsts = cnfGetConsts statCNF
+  baseCNF <- ei2io $ parseAndInitCNF' statConsts "base" baseSrc'
+
+  let cnf = cnfMerge baseCNF statCNF
+  prove cnf
+
+ei2io :: Either Error a -> IO a
+ei2io (Left  e) = do
+  putStrLn $ show e
+  exitFailure
+ei2io (Right a) = return a
 
 prove :: CNF -> IO ()
 prove cnf = if isCnfProved cnf
@@ -70,7 +79,7 @@ prove cnf = if isCnfProved cnf
       [] -> Left ""
       ('.':src) -> do
           cnf' <- induction src cnf
-          return $ cnfAddCNF cnf' cnf
+          return $ cnfMerge cnf cnf'
       _ -> case length ws of
         1 -> do
           i <- str2nat line
@@ -205,6 +214,14 @@ input = do
 
 rangeError :: Either String a
 rangeError = Left "Out of range"
+
+parseAndInitCNF :: String -> String -> M CNF
+parseAndInitCNF = parseAndInitCNF' Set.empty
+
+parseAndInitCNF' :: Set String -> String -> String -> M CNF
+parseAndInitCNF' consts file src = do
+  sys <- parseAndInitSys' consts file src
+  return $ pred2cnf sys
 
 parseSys :: String -> String -> M Pred
 parseSys = parseSys' Set.empty
@@ -461,7 +478,7 @@ standardizeIdent f name p = do
 
   (name, p) <- if name `elem` idents
     then do
-      let name' = getAvailVar' idents name
+      let name' = getAvailVar idents
       let p'    = substIdentP name (ExprI Var name') p
       return (name', p')
     else return (name, p)

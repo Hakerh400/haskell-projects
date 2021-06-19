@@ -1,0 +1,27 @@
+(all x (= x x))
+(all (x y) (-> (= x y) (= y x)))
+(all (x y z) (-> (= x y) (= y z) (= x z)))
+(all n (~ (= 0 (S n))))
+(Ctor S)
+
+(all f (-> (Func f)
+  (all (a b) (-> (= a b)
+    (= (f a) (f b))
+  ))
+))
+
+(all f (-> (Ctor f)
+  (&
+    (Func f)
+    (all (a b) (-> (= (f a) (f b))
+      (= a b)
+    ))
+  )
+))
+
+(all (f g) (-> (Func f) (Func g)
+  (<->
+    (= f g)
+    (all a (= (f a) (g a)))
+  )
+))
