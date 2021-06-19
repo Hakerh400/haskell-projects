@@ -168,19 +168,22 @@ combineClauses i1 j1 i2 j2 cnf = do
   let allVars =  vars1 `Set.union` vars2
   let collisions = filterSet (`elem` vars2) vars1
 
-  let availsSequence = getAvails getAvailVar collisions
+  let availsSequence = getAvails getAvailVar allVars
   let zippedVars = setAsList' (`zip` availsSequence) collisions
   let clause1' = foldr substZippedItems (Set.toList clause1) zippedVars
-  let expr1' = item2expr $ clause1' !! j1
+
+  let item1' = clause1' !! j1
+  let expr1' = item2expr item1'
 
   let lhs = expr1'
   let rhs = expr2
   let eq = makeEq lhs rhs
+  -- error$show$eq
 
   case solve $ Set.fromList [eq] of
     Nothing  -> Left "Incompatible"
     Just sol -> do
-      let c1 = Set.delete item1 $ Set.fromList clause1'
+      let c1 = Set.delete item1' $ Set.fromList clause1'
       let c2 = Set.delete item2 clause2
 
       let c1' = substIdentClause sol c1
@@ -207,6 +210,7 @@ removeClause i cnf = do
 input :: IO String
 input = do
   putStr "\n>>> "
+  -- line <- return "1 1 11 1"
   line <- getLine
   putStrLn ""
   return line
