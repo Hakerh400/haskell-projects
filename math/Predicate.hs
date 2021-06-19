@@ -47,9 +47,6 @@ instance Show Pred where
   show (Ptrue     ) = "True"
   show (Pfalse    ) = "False"
 
-instance Show Expr where
-  show = expr2str True
-
 builtinPredNames :: [String]
 builtinPredNames =
   [ "all"
@@ -65,17 +62,6 @@ builtinPredNames =
 
 isBuiltinPred :: String -> Bool
 isBuiltinPred = (`elem` builtinPredNames)
-
-expr2str :: Bool -> Expr -> String
-expr2str ps expr = case expr of
-  (ExprI _ a)   -> a
-  (ExprP a b) -> let
-    a1 = expr2str False a
-    b1 = expr2str True  b
-    c  = sp [a1, b1]
-    in if ps
-      then parens c
-      else c
 
 op :: String -> Pred -> Pred -> String
 op a b c = parens $ sp [show b, a, show c]

@@ -170,7 +170,6 @@ combineClauses i1 j1 i2 j2 cnf = do
 
   let availsSequence = getAvails getAvailVar collisions
   let zippedVars = setAsList' (`zip` availsSequence) collisions
-
   let clause1' = foldr substZippedItems (Set.toList clause1) zippedVars
   let expr1' = item2expr $ clause1' !! j1
 

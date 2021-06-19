@@ -4,24 +4,22 @@
 (all n (~ (= 0 (S n))))
 (Ctor S)
 
-(all f (-> (Func f)
-  (all (a b) (-> (= a b)
+(all f (-> (Ctor f) (&
+  (Func f)
+  (all (a b) (-> (= (f a) (f b))
+    (= a b)
+  ))
+)))
+
+(all (a b) (-> (= a b) (&
+  (all f (-> (Func f)
     (= (f a) (f b))
   ))
-))
 
-(all f (-> (Ctor f)
-  (&
-    (Func f)
-    (all (a b) (-> (= (f a) (f b))
-      (= a b)
-    ))
-  )
-))
-
-(all (f g) (-> (Func f) (Func g)
-  (<->
-    (= f g)
-    (all a (= (f a) (g a)))
-  )
-))
+  (all p (-> (Pred p) (all (c d) (-> (= c d)
+    (<->
+      (p a b)
+      (p c d)
+    )
+  ))))
+)))

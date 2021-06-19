@@ -1,6 +1,7 @@
 module Expression
   ( Expr(..)
   , IdentType(..)
+  , expr2str
   , getIdentType
   , hasVar
   , substIdentE
@@ -18,6 +19,8 @@ import Data.Set (Set)
 import qualified Data.Map as Map
 import Data.Map (Map)
 
+import Util
+
 data Expr =
   ExprI IdentType String |
   ExprP Expr Expr
@@ -25,6 +28,28 @@ data Expr =
 
 data IdentType = Var | Const
   deriving (Eq, Ord, Show)
+
+instance Show Expr where
+  show = expr2str True
+
+expr2str :: Bool -> Expr -> String
+expr2str ps expr = case expr of
+  ExprI _ a -> a
+  ExprP a b -> let
+    a1 = expr2str False a
+    b1 = expr2str True  b
+    c  = sp [a1, b1]
+    c' = case a of
+      ExprP (ExprI Const x) y -> if isOp x
+        then concat [expr2str False y, " ", x, " ", expr2str False b]
+        else c
+      _ -> c
+    in if ps
+      then parens c'
+      else c'
+
+isOp :: String -> Bool
+isOp = all $ not . Char.isAlphaNum
 
 getIdentType :: String -> IdentType
 getIdentType (x:xs) = if Char.isLower x && all Char.isAlphaNum xs

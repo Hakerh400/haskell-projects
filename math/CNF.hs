@@ -37,6 +37,7 @@ import Data.Map (Map)
 import Predicate
 import Expression
 import Util
+import Avail
 
 newtype CNF = CNF [Clause]
 
@@ -47,7 +48,7 @@ data Item = Item ItemSign Expr
   deriving (Eq, Ord)
 
 data ItemSign = ItemP | ItemN
-  deriving (Eq, Ord)
+  deriving (Eq)
 
 instance Ord Clause where
   compare (Clause set1) (Clause set2) = let
@@ -57,21 +58,29 @@ instance Ord Clause where
       EQ -> compare set1 set2
       a  -> a
 
+instance Ord ItemSign where
+  compare sign1 sign2 = if sign1 == sign2
+    then EQ
+    else if sign1 == ItemP
+      then GT
+      else LT
+
 instance Show CNF where
   show (CNF clauses) = clauses2str clauses
 
 instance Show Item where
-  show (Item sign a) = show sign ++ show a
-
-instance Show ItemSign where
-  show ItemP = ""
-  show ItemN = "~"
+  show (Item ItemP a) = expr2str False a
+  show (Item ItemN a) = "~" ++ expr2str True a
 
 clauses2str :: [Clause] -> String
-clauses2str = numLines . map disj2str
+clauses2str = numLines . map clause2str
 
-disj2str :: Clause -> String
-disj2str = ss disjSep . map show . Set.toList . clause2set
+clause2str :: Clause -> String
+clause2str (Clause itemsSet) = let
+  items = Set.toList itemsSet
+  xs = init items
+  x = last items
+  in ss (concat [s2, "->", s2]) $ map show $ map invItem xs ++ [x]
 
 clause2set :: Clause -> Set Item
 clause2set (Clause a) = a
@@ -79,13 +88,13 @@ clause2set (Clause a) = a
 pred2cnf :: Pred -> CNF
 pred2cnf p = CNF $
   filter (not . isClauseTaut) $
-  Set.toList $ pred2cnfConj p
+  pred2cnfConj p
 
-pred2cnfConj :: Pred -> Set (Clause)
-pred2cnfConj (And a b) = pred2cnfConj a `Set.union` pred2cnfConj b
+pred2cnfConj :: Pred -> [Clause]
+pred2cnfConj (And a b) = pred2cnfConj a ++ pred2cnfConj b
 pred2cnfConj a         = if predHasTrue a
-  then Set.empty
-  else Set.singleton $ Clause $ pred2cnfDisj a
+  then []
+  else [normClause $ Clause $ pred2cnfDisj a]
 
 pred2cnfDisj :: Pred -> Set Item
 pred2cnfDisj (Or a b) = pred2cnfDisj a `Set.union` pred2cnfDisj b
@@ -120,9 +129,6 @@ predHasTrue (Or a b) = predHasTrue a || predHasTrue b
 predHasTrue Ptrue    = True
 predHasTrue _        = False
 
-disjSep :: String
-disjSep = concat [s2, "|", s2]
-
 cnf2clauses :: CNF -> [Clause]
 cnf2clauses (CNF a) = a
 
@@ -148,9 +154,11 @@ cnfMerge :: CNF -> CNF -> CNF
 cnfMerge cnf (CNF cs) = foldr cnfAddClause cnf cs
 
 cnfAddClause :: Clause -> CNF -> CNF
-cnfAddClause clause (CNF cs) = CNF $ if clause `elem` cs
-  then cs
-  else cs ++ [clause]
+cnfAddClause clause (CNF cs) = let
+  clause' = normClause clause
+  in CNF $ if clause' `elem` cs
+    then cs
+    else cs ++ [clause']
 
 cnfGetConsts :: CNF -> Set String
 cnfGetConsts (CNF clauses) = Set.unions $ map clauseGetConsts clauses
@@ -169,3 +177,11 @@ clauseGetVars (Clause set) = Set.unions $ mapSet' itemGetVars set
 
 itemGetVars :: Item -> Set String
 itemGetVars (Item _ expr) = exprGetVars expr
+
+normClause :: Clause -> Clause
+normClause clause = Clause $ let
+  items = Set.toList $ clause2set clause
+  vars = clauseGetVars clause
+  availsSequence = getAvails getAvailVar Set.empty
+  zippedVars = setAsList' (`zip` availsSequence) vars
+  in Set.fromList $ foldr substZippedItems items zippedVars

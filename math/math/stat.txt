@@ -1,7 +1,13 @@
-(Func F)
-(all a (Func (F a)))
+(Pred <=)
 
-(= A C)
-(= B D)
+(all (a b) (<->
+  (<= a b) (|
+    (= a 0)
+    (exi (c d) (&
+      (= a (S c))
+      (= b (S d))
+      (<= c d)
+    ))
+)))
 
-(= (F A B) (F C D))
+(~ (<= (S 0) 0))
