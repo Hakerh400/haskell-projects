@@ -21,7 +21,7 @@ instance (BoolM m) => Functor (Wrap m) where
   fmap = const adapt
 
 instance (BoolM m) => Applicative (Wrap m) where
-  pure = const $ base
+  pure = const base
   liftA2 _ a b = wrap $ combine a b
 
 instance (BoolM m) => Monad (Wrap m) where
