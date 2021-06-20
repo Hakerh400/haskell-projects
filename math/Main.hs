@@ -210,8 +210,8 @@ removeClause i cnf = do
 input :: IO String
 input = do
   putStr "\n>>> "
-  -- line <- return "1 1 11 1"
-  line <- getLine
+  line <- return ""
+  -- line <- getLine
   putStrLn ""
   return line
 
@@ -515,14 +515,14 @@ createSkolemFunc idents = do
 
 removeUni :: Pred -> Pred
 removeUni (Forall a b) = removeUni b
-removeUni (Or     a b) = removeUni a `Or`  removeUni b
 removeUni (And    a b) = removeUni a `And` removeUni b
+removeUni (Or     a b) = removeUni a `Or`  removeUni b
 removeUni (Pnot   a  ) = Pnot $ removeUni a
 removeUni a            = a
 
 distribConj :: Pred -> Pred
-distribConj (Or  a b) = distribConj' (distribConj a) (distribConj b)
 distribConj (And a b) = distribConj a `And` distribConj b
+distribConj (Or  a b) = distribConj' (distribConj a) (distribConj b)
 distribConj a         = a
 
 distribConj' :: Pred -> Pred -> Pred

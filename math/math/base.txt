@@ -23,3 +23,7 @@
     )
   ))))
 )))
+
+(all phi
+  (-> (phi 0) (all n (-> (phi n) (phi (S n)))) (all n (phi n)))
+)
