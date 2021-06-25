@@ -431,7 +431,7 @@ initSys sys = do
   -- 5. Drop universal quantifiers
   sys <- return $ removeUni sys
 
-  -- 6. Distribute conjuction over disjunction
+  -- 6. Distribute conjunction over disjunction
   sys <- return $ distribConj sys
 
   return sys
