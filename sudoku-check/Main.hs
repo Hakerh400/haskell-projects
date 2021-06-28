@@ -60,7 +60,7 @@ main = print $ all test tests
 test :: Test -> Bool
 test (sudoku, expected) = unwrap (check sudoku) == expected
 
-tests:: [Test]
+tests :: [Test]
 tests = [
   ([
     "123456789",
