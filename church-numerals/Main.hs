@@ -40,10 +40,7 @@ dec :: N -> N
 dec (N n) = sn $ n dec' (pair cZero u)
 
 dec' :: (N -> N) -> N -> N
-dec' p = let
-  a = fs p
-  b = sn p
-  in pair (inc a) (ite a a cZero)
+dec' p = let a = fs p in pair (inc a) (ite a a cZero)
 
 add :: N -> N -> N
 add x (N n) = n inc x
