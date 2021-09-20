@@ -1,6 +1,5 @@
 module Serializer
-  ( N
-  , Serializer
+  ( Serializer
   , Ser
   , ser
   , deser
@@ -12,6 +11,10 @@ module Serializer
   , read2
   , inc
   , inc1
+  , write_nat
+  , write_nat'
+  , read_nat
+  , read_nat'
   , get_output
   ) where
 
@@ -92,6 +95,35 @@ inc = write 1
 
 inc1 :: Ser ()
 inc1 = inc 1
+
+write_nat :: N -> Ser ()
+write_nat n = f $ n + 1 where
+  f 1 = write2 0
+  f n = do
+    write2 1
+    write2 $ n `mod` 2
+    f $ n `div` 2
+
+write_nat' :: N -> Ser ()
+write_nat' = inc
+
+read_nat :: Ser N
+read_nat = do
+  n <- read_nat_aux
+  return $ n - 1
+
+read_nat_aux :: Ser N
+read_nat_aux = do
+  b <- read2
+  if b == 0
+    then return 1
+    else do
+      a <- read2
+      b <- read_nat_aux
+      return $ a + 2 * b
+
+read_nat' :: Ser N
+read_nat' = get_num
 
 get_output :: Ser N
 get_output = do

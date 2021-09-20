@@ -1,5 +1,8 @@
 module Program where
 
+import Prelude hiding (read)
+import qualified Serializer as S
+
 type N = Integer
 
 data Unit = Unit N
@@ -23,10 +26,15 @@ unit_fold = unit_get
 data Pair = Pair N N
 
 from_pair :: Pair -> N
-from_pair (Pair a b) = u
+from_pair (Pair a b) = S.ser $ do
+  S.write_nat a
+  S.write_nat' b
 
 to_pair :: N -> Pair
-to_pair n = u
+to_pair = S.deser $ do
+  a <- S.read_nat
+  b <- S.read_nat'
+  return $ Pair a b
 
 pair :: N -> N -> N
 pair a b = from_pair $ Pair a b
