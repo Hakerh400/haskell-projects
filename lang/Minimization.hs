@@ -9,10 +9,10 @@ import Bool
 import Nat
 
 minimize :: (Nat -> Bool) -> Nat
-minimize f = minimize' f nat_zero
+minimize f = minimize' f zero
 
 minimize' :: (Nat -> Bool) -> Nat -> Nat
 minimize' f n = bool_exa
   n
-  (minimize' f (nat_suc n))
+  (minimize' f (suc n))
   (f n)
