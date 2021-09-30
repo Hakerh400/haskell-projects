@@ -1,6 +1,7 @@
 module Serializer
   ( SerT(..)
   , Ser
+  , Table
   , nz
   , lt
   , write
@@ -13,8 +14,10 @@ module Serializer
   , writeNat'
   , readNat
   , readNat'
+  , getNum
   , getTable
   , setTable
+  , getDmax
   , getOutput
   ) where
 
@@ -27,11 +30,13 @@ import Tree
 
 type Elem = (N, N)
 type Stack = [Elem]
+type Table = [(Tree, Maybe N)]
 
 data SerT = SerT
   { num   :: N
   , stack :: Stack
-  , table :: [Tree]
+  , table :: Table
+  , dmax  :: Maybe N
   }
 
 type Ser = State SerT
@@ -125,11 +130,14 @@ readNatAux = do
 readNat' :: Ser N
 readNat' = getNum
 
-getTable :: Ser [Tree]
+getTable :: Ser Table
 getTable = gets table
 
-setTable :: [Tree] -> Ser ()
+setTable :: Table -> Ser ()
 setTable ts = get >>= \s -> put s {table = ts}
+
+getDmax :: Ser (Maybe N)
+getDmax = gets dmax
 
 getOutput :: Ser N
 getOutput = do
