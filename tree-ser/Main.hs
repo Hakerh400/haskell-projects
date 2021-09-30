@@ -11,7 +11,7 @@ import Base
 import Tree
 import Serializer
 
-k = 1
+k = 3
 
 main :: IO ()
 main = mapM_ func [0..100] where
@@ -30,7 +30,11 @@ initSer k n = SerT
   , table = table
   , dmax = (foldr (liftA2 max) (Just 0) $ map snd table) >>= Just . id
   } where
-    table = map (\a -> (Leaf a, Just 2)) [0..k-1]
+    table =
+      [ (Leaf 0, Just 0)
+      , (Leaf 1, Just 1)
+      , (Leaf 2, Just 2)
+      ]
 
 ser :: N -> Tree -> N
 ser n t = evalState (serTree False Nothing 0 t >> getOutput) $ initSer n 0
@@ -68,7 +72,7 @@ serTree more mleft depth t = do
       serTree more (Just left) 0 right
       tableRaw <- getTable
       let Just (_, depthLeft) = find ((== left) . fst) tableRaw
-      push (t, depthLeft >>= Just . (+1))
+      push (t, depthLeft >>= Just . dec)
 
 deserTree :: Bool -> Maybe Tree -> N -> Ser Tree
 deserTree more mleft depth = do
@@ -86,7 +90,7 @@ deserTree more mleft depth = do
     let t = Node left right
     tableRaw <- getTable
     let Just (_, depthLeft) = find ((== left) . fst) tableRaw
-    push (t, depthLeft >>= Just . (+1))
+    push (t, depthLeft >>= Just . dec)
     return t
   retElem <- pure $ \i -> do
     if i < len ts
