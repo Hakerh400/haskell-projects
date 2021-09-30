@@ -42,10 +42,10 @@ serTree :: Bool -> Maybe Tree -> N -> Tree -> Ser ()
 serTree more mleft depth t = do
   dmax <- getDmax
   ifnDmax <- pure $ \action -> case dmax of
-      Nothing -> action
-      Just m -> if depth < m
-        then action
-        else pure ()
+    Nothing -> action
+    Just m -> if depth < m
+      then action
+      else pure ()
   table <- getTableWithDepth depth
   ts <- pure $ case mleft of
     Just left -> filter filterFunc table where
@@ -79,29 +79,12 @@ deserTree more mleft depth = do
     Just left -> filter filterFunc table where
       filterFunc (right, _) = not $ any ((== Node left right) . fst) table
     Nothing -> table
-
-  -- if null ts
-  --   then do
-  --     error $ show $ dmax
-  --   else pure ()
-
-  (_:_) <- pure ts -- ASSERT
   let n = len ts
   deserRec <- pure $ do
     left <- deserTree True Nothing (depth + 1)
-    tableRaw <- getTable -- ASSERT
-    True <- pure $ any (\a -> fst a == left) tableRaw -- ASSERT
-
     right <- deserTree more (Just left) 0
-    tableRaw <- getTable -- ASSERT
-    True <- pure $ any (\a -> fst a == right) tableRaw -- ASSERT
-
     let t = Node left right
-
-    -- if find ((== left) . fst) tableRaw == Nothing
-    --   then error $ show $ left
-    --   else pure ()
-
+    tableRaw <- getTable
     let Just (_, depthLeft) = find ((== left) . fst) tableRaw
     push (t, depthLeft >>= Just . (+1))
     return t
