@@ -54,14 +54,6 @@ addAsList a b = let
   s = addLists a1 b1
   in s ++ addAsList a2 b2
 
-splitAt :: N -> [a] -> ([a], [a])
-splitAt 0 xs = ([], xs)
-splitAt n (x:xs) = let
-  r = splitAt (n - 1) xs
-  a1 = fst r
-  a2 = snd r
-  in (x:a1, a2)
-
 addLists :: [Bool] -> [Bool] -> [Bool]
 addLists xs ys = fst $ foldr f ([], False) $ zip xs ys where
   f (x, y) (acc, carry) = let
@@ -75,6 +67,14 @@ findCommon0 (_:xs) (_:ys) = 1 + findCommon0 xs ys
 
 invert :: Real -> Real
 invert = (not.)
+
+splitAt :: N -> [a] -> ([a], [a])
+splitAt 0 xs = ([], xs)
+splitAt n (x:xs) = let
+  r = splitAt (n - 1) xs
+  a1 = fst r
+  a2 = snd r
+  in (x:a1, a2)
 
 main :: IO ()
 main = do
