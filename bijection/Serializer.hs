@@ -1,79 +1,84 @@
 module Serializer
-  ( Serializer
+  ( SerT(..)
   , Ser
-  , ser
-  , deser
-  , ser_init
+  , Table
   , nz
+  , lt
   , write
   , write2
   , read
   , read2
   , inc
   , inc1
-  , write_nat
-  , write_nat'
-  , read_nat
-  , read_nat'
-  , get_output
+  , writeNat
+  , writeNat'
+  , readNat
+  , readNat'
+  , getNum
+  , getTable
+  , setTable
+  , getDmax
+  , getOutput
   ) where
 
 import Control.Monad.State
 
 import Prelude hiding (read)
 
-type N = Integer
+import Base
+import Tree
+
 type Elem = (N, N)
 type Stack = [Elem]
+type Table = [(Tree, Maybe N)]
 
-data Serializer = Serializer
-  { num :: N
+data SerT = SerT
+  { num   :: N
   , stack :: Stack
+  , table :: Table
+  , dmax  :: Maybe N
   }
 
-type Ser = State Serializer
+type Ser = State SerT
 
-get_num :: Ser N
-get_num = gets num
+getNum :: Ser N
+getNum = gets num
 
-get_stack :: Ser Stack
-get_stack = gets stack
+getStack :: Ser Stack
+getStack = gets stack
 
-set_num :: N -> Ser ()
-set_num num = modify $ \s -> s {num = num}
+setNum :: N -> Ser ()
+setNum num = modify $ \s -> s {num = num}
 
-set_stack :: Stack -> Ser ()
-set_stack stack = modify $ \s -> s {stack = stack}
+setStack :: Stack -> Ser ()
+setStack stack = modify $ \s -> s {stack = stack}
 
-modify_num :: (N -> N) -> Ser ()
-modify_num f = modify $ \s -> s {num = f $ num s}
+modifyNum :: (N -> N) -> Ser ()
+modifyNum f = modify $ \s -> s {num = f $ num s}
 
-modify_stack :: (Stack -> Stack) -> Ser ()
-modify_stack f = modify $ \s -> s {stack = f $ stack s}
+modifyStack :: (Stack -> Stack) -> Ser ()
+modifyStack f = modify $ \s -> s {stack = f $ stack s}
 
 push :: Elem -> Ser ()
-push e = modify_stack (e:)
-
-ser :: Ser () -> N
-ser f = evalState (f >> get_output) $ ser_init 0
-
-deser :: Ser a -> N -> a
-deser f n = evalState f $ ser_init n
-
-ser_init :: N -> Serializer
-ser_init n = Serializer
-  { num = n
-  , stack = []
-  }
+push e = modifyStack (e:)
 
 nz :: Ser Bool
 nz = do
-  n <- get_num
+  n <- getNum
   if n /= 0
     then do
-      set_num $ n - 1
+      setNum $ n - 1
       return True
     else return False
+
+lt :: N -> Ser (Maybe N)
+lt k = do
+  n <- getNum
+  if n < k
+    then return $ Just n
+    else do
+      setNum $ n - k
+      return Nothing
 
 write :: N -> N -> Ser ()
 write m n = push (m, n)
@@ -83,8 +88,8 @@ write2 = write 2
 
 read :: N -> Ser N
 read m = do
-  n <- get_num
-  set_num $ n `div` m
+  n <- getNum
+  setNum $ n `div` m
   return $ n `mod` m
 
 read2 :: Ser N
@@ -96,39 +101,48 @@ inc = write 1
 inc1 :: Ser ()
 inc1 = inc 1
 
-write_nat :: N -> Ser ()
-write_nat n = f $ n + 1 where
+writeNat :: N -> Ser ()
+writeNat n = f $ n + 1 where
   f 1 = write2 0
   f n = do
     write2 1
     write2 $ n `mod` 2
     f $ n `div` 2
 
-write_nat' :: N -> Ser ()
-write_nat' = inc
+writeNat' :: N -> Ser ()
+writeNat' = inc
 
-read_nat :: Ser N
-read_nat = do
-  n <- read_nat_aux
+readNat :: Ser N
+readNat = do
+  n <- readNatAux
   return $ n - 1
 
-read_nat_aux :: Ser N
-read_nat_aux = do
+readNatAux :: Ser N
+readNatAux = do
   b <- read2
   if b == 0
     then return 1
     else do
       a <- read2
-      b <- read_nat_aux
+      b <- readNatAux
       return $ a + 2 * b
 
-read_nat' :: Ser N
-read_nat' = get_num
+readNat' :: Ser N
+readNat' = getNum
 
-get_output :: Ser N
-get_output = do
-  stack <- get_stack
-  return $ foldl iter_stack 0 stack
+getTable :: Ser Table
+getTable = gets table
 
-iter_stack :: N -> Elem -> N
-iter_stack r (m, n) = r * m + n
+setTable :: Table -> Ser ()
+setTable ts = get >>= \s -> put s {table = ts}
+
+getDmax :: Ser (Maybe N)
+getDmax = gets dmax
+
+getOutput :: Ser N
+getOutput = do
+  stack <- getStack
+  return $ foldl iterStack 0 stack
+
+iterStack :: N -> Elem -> N
+iterStack r (m, n) = r * m + n
