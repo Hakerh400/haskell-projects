@@ -30,7 +30,6 @@ import Tree
 
 type Elem = (N, N)
 type Stack = [Elem]
-type Table = [(Tree, Maybe N)]
 
 data SerT = SerT
   { num   :: N

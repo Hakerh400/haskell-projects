@@ -2,6 +2,8 @@ module Tree where
 
 import Base
 
+type Table = [(Tree, Maybe N)]
+
 data Tree =
   Leaf N |
   Node Tree Tree
