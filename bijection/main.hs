@@ -9,11 +9,53 @@ import Base
 import Tree
 import TreeSer
 import Expr
-import Comb
+import ProgInfo
+
+srcFile = "src.txt"
+inpFile = "input.txt"
 
 main :: IO ()
 main = do
-  print $ combsTable
+  -- src <- readFile srcFile
+  -- input <- readFile inpFile
+  
+  let p = putStrLn . concat
+  
+  flip mapM_ (zip [0..10^4] [0..]) $ \(n, i) -> do
+    if i /= 0
+      then p []
+      else pure ()
+    
+    let expr = ExprNat n
+    
+    let nat = exprToNat expr
+    let tree = exprToTree expr
+    let combArgs = exprToFunc expr
+    
+    let exprNat = ExprNat nat
+    let exprTree = ExprTree tree
+    let exprFunc = combArgsToExpr combArgs
+    
+    p [show n]
+    p ["nat:  ", show $ exprNat]
+    p ["tree: ", show $ exprTree]
+    p ["func: ", show $ exprFunc]
+    
+    True <- pure $ exprToNat exprNat == n
+    True <- pure $ exprToNat exprTree == n
+    True <- pure $ exprToNat exprFunc == n
+    
+    True <- pure $ exprToTree exprNat == tree
+    True <- pure $ exprToTree exprTree == tree
+    True <- pure $ exprToTree exprFunc == tree
+    
+    True <- pure $ exprToFunc exprNat == combArgs
+    True <- pure $ exprToFunc exprTree == combArgs
+    True <- pure $ exprToFunc exprFunc == combArgs
+    
+    p ["ok"]
+  
+  putStr []
 
 -- k = 3
 -- main :: IO ()

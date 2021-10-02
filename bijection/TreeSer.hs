@@ -16,24 +16,21 @@ import Base
 import Tree
 import Serializer
 
-initSer :: N -> N -> SerT
-initSer k n = SerT
+initSer :: Table -> N -> SerT
+initSer table n = SerT
   { num = n
   , stack = []
   , table = table
   , dmax = (foldr (liftA2 max) (Just 0) $ map snd table) >>= Just . id
-  } where
-    table =
-      [ (Leaf 0, Just 0)
-      , (Leaf 1, Just 1)
-      , (Leaf 2, Just 2)
-      ]
+  }
 
-ser :: N -> Tree -> N
-ser n t = evalState (serTree False Nothing 0 t >> getOutput) $ initSer n 0
+ser :: Table -> Tree -> N
+ser table t = evalState (serTree False Nothing 0 t >> getOutput) $
+  initSer table 0
 
-deser :: N -> N -> Tree
-deser n nat = evalState (deserTree False Nothing 0) $ initSer n nat
+deser :: Table -> N -> Tree
+deser table nat = evalState (deserTree False Nothing 0) $
+  initSer table nat
 
 serTree :: Bool -> Maybe Tree -> N -> Tree -> Ser ()
 serTree more mleft depth t = do
