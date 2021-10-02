@@ -12,7 +12,6 @@ import Tree
 data Comb
   = K
   | S
-  | NIL
   | PAIR
   | EXA
   deriving (Bounded, Enum, Ord, Eq, Show)
@@ -24,7 +23,7 @@ combsNum :: N
 combsNum = len allCombs
 
 combArities :: [N]
-combArities = [2, 3, 0, 2, 3]
+combArities = [2, 3, 2, 3]
 
 combsTable :: Table
 combsTable = zipWith combTable' [0..combsNum-1] combArities where
