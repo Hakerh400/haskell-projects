@@ -14,6 +14,9 @@ module Expr
   , combArities
   , combsTable
   , applyComb
+  , examine
+  , leafToComb
+  , combToLeaf
   ) where
 
 import Base
@@ -109,15 +112,23 @@ combsTable = zipWith combTable' [0..combsNum-1] combArities where
 applyComb :: ProgInfo -> N -> Comb -> [Expr] -> Expr
 applyComb info depth comb args = case (comb, args) of
   (K, [a, b]) -> a
-  (S, [a, b, c]) -> call (call a c) (call b c)
+  (S, [a, b, c]) -> a # c # (b # c)
   (PAIR, [a, b]) -> ExprTree $ mkPair a b
-  (EXA, [a, b, c]) -> undefined
+  (EXA, [a, b, c]) -> examine info depth a b (exprToTree c)
   _ -> ExprFunc comb args
   where
-    call = callExpr info depth
+    (#) = callExpr info depth
 
-combToLeaf :: Comb -> Tree
-combToLeaf comb = Leaf $ fromIntegral $ fromEnum comb
+examine :: ProgInfo -> N -> Expr -> Expr -> Tree -> Expr
+examine info depth f z (Leaf 0) = z
+examine info depth f z (Node left right) =
+  f # ExprTree left # ExprTree right # exa left # exa right
+  where
+    (#) = callExpr info depth
+    exa = examine info depth f z
 
 leafToComb :: Tree -> Comb
 leafToComb (Leaf n) = toEnum $ fromIntegral n
+
+combToLeaf :: Comb -> Tree
+combToLeaf comb = Leaf $ fromIntegral $ fromEnum comb
