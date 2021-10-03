@@ -5,6 +5,9 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 
+import Data.Map (Map)
+import qualified Data.Map as Map
+
 import Base
 import Tree
 import TreeSer
@@ -12,8 +15,34 @@ import Expr
 import ProgInfo
 import Parser
 
+type Defs = Map String Tree
+
+data ITree
+  = IIdent String
+  | ITree Tree
+  | ICall ITree ITree
+  deriving (Eq, Show)
+
 srcFile = "src.txt"
 inpFile = "input.txt"
+
+combI :: ITree
+combI = ITree $ Leaf 0
+
+combK :: ITree
+combK = ITree $
+  Node (Leaf 1) (Node (Leaf 0) (Leaf 0))
+
+combS :: ITree
+combS = ITree $ Leaf 1
+
+combD :: ITree
+combD = ITree $
+  undefined
+
+combF :: ITree
+combF = ITree $
+  undefined
 
 main :: IO ()
 main = do
@@ -22,8 +51,79 @@ main = do
   src <- readFile srcFile
   -- input <- readFile inpFile
   
-  p [show $ parse src]
+  let parsedDefs = parse src
+  let defs = foldl processDef initDefs parsedDefs
+  let mainDef = (Map.!) defs "main"
   
+  p [show mainDef]
+  
+  putStr ""
+
+initDefs :: Defs
+initDefs = Map.fromList
+  [ ("nil", Leaf 0)
+  , ("pair", Leaf 2)
+  , ("exa", Leaf 3)
+  ]
+
+processDef :: Defs -> IdentDef -> Defs
+processDef defs def = let
+  name = _name def
+  args = _args def
+  pexpr = _expr def
+  expr = funcToComb defs args pexpr
+  in if name `Map.member` defs
+    then error $ concat ["Duplicate definition for ", show name]
+    else Map.insert name expr defs
+
+funcToComb :: Defs -> [String] -> ParsedExpr -> Tree
+funcToComb defs args pexpr = let
+  itreeInit = pexprToItree pexpr
+  itree = foldr (processArg defs) itreeInit args
+  in itreeToCtree defs itree
+
+processArg :: Defs -> String -> ITree -> ITree
+processArg defs arg itree
+  | itree == IIdent arg = combI
+  | IIdent _ <- itree = ICall combK itree
+  | ITree _ <- itree = ICall combK itree
+  | ICall left right <- itree = processArgCall arg itree
+
+processArgCall :: String -> ITree -> ITree
+processArgCall arg itree@(ICall left right)
+  = case (hasLeft, hasRight) of
+    (False, False) -> ICall combK itree
+    (False, True) -> if right == IIdent arg
+      then itree
+      else ICall (ICall combD left) pright
+    (True, False) -> ICall (ICall combF pleft) right
+    (True, True) -> ICall (ICall combS pleft) pright
+  where
+    hasLeft = hasArg arg left
+    hasRight = hasArg arg right
+    pleft = processArgCall arg left
+    pright = processArgCall arg right
+
+hasArg :: String -> ITree -> Bool
+hasArg arg (IIdent name) = name == arg
+hasArg arg (ITree _) = False
+hasArg arg (ICall left right)
+  = hasArg arg left || hasArg arg right
+
+pexprToItree :: ParsedExpr -> ITree
+pexprToItree (Ident name) = IIdent name
+pexprToItree (Call target arg)
+  = ICall (pexprToItree target) (pexprToItree arg)
+
+itreeToCtree :: Defs -> ITree -> Tree
+itreeToCtree defs (IIdent name)
+  = case Map.lookup name defs of
+    Just tree -> tree
+    Nothing -> error $ concat ["Undefined identifier ", show name]
+itreeToCtree defs (ITree tree) = tree
+itreeToCtree defs (ICall target arg)
+  = Node (itreeToCtree defs target) (itreeToCtree defs arg)
+
   -- 
   -- let info = ProgInfo {maxRecDepth = 2}
   -- let depth = 0
