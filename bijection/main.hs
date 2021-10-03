@@ -10,25 +10,29 @@ import Tree
 import TreeSer
 import Expr
 import ProgInfo
+import Parser
 
 srcFile = "src.txt"
 inpFile = "input.txt"
 
 main :: IO ()
 main = do
-  -- src <- readFile srcFile
-  -- input <- readFile inpFile
-  
   let p = putStrLn . concat
   
-  let info = ProgInfo {maxRecDepth = 2}
-  let depth = 0
+  src <- readFile srcFile
+  -- input <- readFile inpFile
   
-  let i = ExprFunc S [ExprFunc K [], ExprFunc K []]
-  let arg = ExprTree (Node (Leaf 0) (Leaf 0))
-  let result = callExpr info depth i arg
+  p [show $ parse src]
   
-  p [show $ exprToTree result]
+  -- 
+  -- let info = ProgInfo {maxRecDepth = 2}
+  -- let depth = 0
+  -- 
+  -- let i = ExprFunc S [ExprFunc K [], ExprFunc K []]
+  -- let arg = ExprTree (Node (Leaf 0) (Leaf 0))
+  -- let result = callExpr info depth i arg
+  -- 
+  -- p [show $ exprToTree result]
   
   -- flip mapM_ (zip [10 ^ 4] [0..]) $ \(n, i) -> do
   --   if i /= 0
