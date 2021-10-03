@@ -46,10 +46,9 @@ combD = ITree $
 combF :: ITree
 combF = let
   ITree d = combD
-  in ITree $
-    Node
-      (Node (Leaf 1) (Node (Node d d) (Leaf 1)))
-      (Node (Leaf 0) (Leaf 0))
+  in ITree $ Node
+    (Node (Leaf 1) (Node (Node d d) (Leaf 1)))
+    (Node (Leaf 0) (Leaf 0))
 
 main :: IO ()
 main = do
