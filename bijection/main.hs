@@ -7,6 +7,7 @@ import Control.Monad.State
 
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Control.DeepSeq
 
 import Base
 import Tree
@@ -26,38 +27,71 @@ data ITree
 srcFile = "src.txt"
 inpFile = "input.txt"
 
+mainFuncName = "main"
+
 combI :: ITree
-combI = ITree $ Leaf 0
+combI = ITree $
+  Node (Node (Leaf 1) (Leaf 0)) (Leaf 0)
 
 combK :: ITree
-combK = ITree $
-  Node (Leaf 1) (Node (Leaf 0) (Leaf 0))
+combK = ITree $ Leaf 0
 
 combS :: ITree
 combS = ITree $ Leaf 1
 
 combD :: ITree
 combD = ITree $
-  undefined
+  Node (Node (Leaf 1) (Node (Leaf 0) (Leaf 1))) (Leaf 0)
 
 combF :: ITree
-combF = ITree $
-  undefined
+combF = let
+  ITree d = combD
+  in ITree $
+    Node
+      (Node (Leaf 1) (Node (Node d d) (Leaf 1)))
+      (Node (Leaf 0) (Leaf 0))
 
 main :: IO ()
 main = do
   let p = putStrLn . concat
   
   src <- readFile srcFile
-  -- input <- readFile inpFile
+  input <- readFile inpFile
   
   let parsedDefs = parse src
   let defs = foldl processDef initDefs parsedDefs
-  let mainDef = (Map.!) defs "main"
+  defs `deepseq` pure ()
   
-  p [show mainDef]
+  let { mainCtree = case Map.lookup mainFuncName defs of
+    Nothing -> error $ concat ["Missing definition for ", show mainFuncName]
+    Just def -> def
+  }
+  
+  let { progInfo = ProgInfo
+    { maxRecDepth = fromIntegral $ Map.size defs + 2
+    }
+  }
+  
+  let mainExpr = rawCtreeToExpr progInfo mainCtree
+  
+  -- p [show $ exprToFuncExpr $ ExprTree $ Leaf 0]
+  -- p [show mainExpr]
+  p [show $ exprToNat mainExpr]
+  p [showExprFunc mainExpr]
+  p [show $ exprToTree mainExpr]
   
   putStr ""
+
+f 0 = Leaf 0
+f n = Node (f (n - 1)) (f (n - 1))
+
+rawCtreeToExpr :: ProgInfo -> Tree -> Expr
+rawCtreeToExpr info leaf@(Leaf _)
+  = ExprFunc (leafToComb leaf) []
+rawCtreeToExpr info (Node target arg)
+  = callExpr info 0
+    (rawCtreeToExpr info target)
+    (rawCtreeToExpr info arg)
 
 initDefs :: Defs
 initDefs = Map.fromList
@@ -87,22 +121,22 @@ processArg defs arg itree
   | itree == IIdent arg = combI
   | IIdent _ <- itree = ICall combK itree
   | ITree _ <- itree = ICall combK itree
-  | ICall left right <- itree = processArgCall arg itree
+  | ICall left right <- itree = processArgCall defs arg itree
 
-processArgCall :: String -> ITree -> ITree
-processArgCall arg itree@(ICall left right)
+processArgCall :: Defs -> String -> ITree -> ITree
+processArgCall defs arg itree@(ICall left right)
   = case (hasLeft, hasRight) of
     (False, False) -> ICall combK itree
     (False, True) -> if right == IIdent arg
-      then itree
+      then left
       else ICall (ICall combD left) pright
     (True, False) -> ICall (ICall combF pleft) right
     (True, True) -> ICall (ICall combS pleft) pright
   where
     hasLeft = hasArg arg left
     hasRight = hasArg arg right
-    pleft = processArgCall arg left
-    pright = processArgCall arg right
+    pleft = processArg defs arg left
+    pright = processArg defs arg right
 
 hasArg :: String -> ITree -> Bool
 hasArg arg (IIdent name) = name == arg

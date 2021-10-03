@@ -1,4 +1,9 @@
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
+
 module Tree where
+
+import GHC.Generics (Generic)
+import Control.DeepSeq
 
 import Base
 
@@ -7,6 +12,7 @@ type Table = [(Tree, Maybe N)]
 data Tree =
   Leaf N |
   Node Tree Tree
+  deriving (Generic, NFData)
 
 instance Eq Tree where
   Leaf a == Leaf b = a == b

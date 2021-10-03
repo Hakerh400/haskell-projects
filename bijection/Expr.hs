@@ -5,9 +5,11 @@ module Expr
   , exprToNat
   , exprToTree
   , exprToFunc
+  , exprToFuncExpr
   , combArgsToExpr
   , mkPair
   , simpleTreeTable
+  , showExprFunc
   , Comb(..)
   , allCombs
   , combsNum
@@ -35,7 +37,7 @@ data Expr
 callExpr :: ProgInfo -> N -> Expr -> Expr -> Expr
 callExpr info depth target arg =
   if depth == maxRecDepth info
-    then ExprTree $ mkPair target arg
+    then error"maxRecDepth"--ExprTree $ mkPair target arg
     else callFunc info (depth + 1) (exprToFunc target) arg
 
 callFunc :: ProgInfo -> N -> (Comb, [Expr]) -> Expr -> Expr
@@ -69,6 +71,9 @@ ctreeToCombArgs (Node target arg) = let
   (comb, args) = ctreeToCombArgs target
   in (comb, args ++ [ctreeToExpr arg])
 
+exprToFuncExpr :: Expr -> Expr
+exprToFuncExpr = combArgsToExpr . exprToFunc
+
 combArgsToExpr :: (Comb, [Expr]) -> Expr
 combArgsToExpr = uncurry ExprFunc
 
@@ -86,6 +91,16 @@ mkPair a b = Node (exprToTree a) (exprToTree b)
 
 simpleTreeTable :: Table
 simpleTreeTable = [(Leaf 0, Nothing)]
+
+showExprFunc :: Expr -> String
+showExprFunc expr = let
+  ExprFunc comb args = exprToFuncExpr expr
+  cstr = show comb
+  argStrs = map showExprFunc args
+  str = unwords $ cstr : argStrs
+  in if null args
+    then str
+    else concat ["(", str, ")"]
 
 -- Comb
 

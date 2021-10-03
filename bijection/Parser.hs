@@ -70,6 +70,11 @@ parseArgs = do
     TK.Ident name -> do
       getToken
       args <- parseArgs
+      
+      if name `elem` args
+        then error $ concat ["Duplicate argument ", show name]
+        else pure ()
+      
       return $ name : args
     _ -> return []
 
