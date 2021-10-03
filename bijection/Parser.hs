@@ -1,11 +1,9 @@
 module Parser
   ( IdentDef(..)
-  , ParsedBody(..)
+  , ParsedExpr(..)
   , parse
   ) where
 
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Control.Monad
 import Control.Monad.State
 
@@ -23,12 +21,12 @@ data ParserState = ParserState
 data IdentDef = IdentDef
   { _name :: String
   , _args :: [String]
-  , _body :: ParsedBody
+  , _expr :: ParsedExpr
   } deriving (Show)
 
-data ParsedBody
+data ParsedExpr
   = Ident String
-  | Call ParsedBody ParsedBody
+  | Call ParsedExpr ParsedExpr
   deriving (Show)
 
 parse :: String -> [IdentDef]
@@ -58,11 +56,11 @@ parseDef = do
   TK.Ident name <- getToken
   args <- parseArgs
   EqSign <- getToken
-  body <- parseBody True
+  expr <- parseExpr True
   return $ IdentDef
     { _name = name
     , _args = args
-    , _body = body
+    , _expr = expr
     }
 
 parseArgs :: Parser [String]
@@ -75,24 +73,24 @@ parseArgs = do
       return $ name : args
     _ -> return []
 
-parseBody :: Bool -> Parser ParsedBody
-parseBody top = do
-  terms <- parseBodyTerms top
+parseExpr :: Bool -> Parser ParsedExpr
+parseExpr top = do
+  terms <- parseExprTerms top
   return $ foldl1 Call terms
 
-parseBodyTerms :: Bool -> Parser [ParsedBody]
-parseBodyTerms top = do
+parseExprTerms :: Bool -> Parser [ParsedExpr]
+parseExprTerms top = do
   tok <- getToken
   case (top, tok) of
     (True, EndOfDef) -> return []
     (False, ClosedParen) -> return []
     (_, TK.Ident name) -> do
-      terms <- parseBodyTerms top
+      terms <- parseExprTerms top
       return $ Ident name : terms
     (_, OpenParen) -> do
-      body <- parseBody False
-      terms <- parseBodyTerms top
-      return $ body : terms
+      expr <- parseExpr False
+      terms <- parseExprTerms top
+      return $ expr : terms
     -- a -> error$show$a
 
 getOrQueryToken :: Bool -> Parser Token
