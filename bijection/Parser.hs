@@ -53,15 +53,19 @@ parseProg = do
 
 parseDef :: Parser IdentDef
 parseDef = do
-  TK.Ident name <- getToken
-  args <- parseArgs
-  EqSign <- getToken
-  expr <- parseExpr True
-  return $ IdentDef
-    { _name = name
-    , _args = args
-    , _expr = expr
-    }
+  -- TK.Ident name <- getToken
+  tok <- getToken
+  case tok of
+    EndOfDef -> parseDef
+    TK.Ident name -> do
+      args <- parseArgs
+      EqSign <- getToken
+      expr <- parseExpr True
+      return $ IdentDef
+        { _name = name
+        , _args = args
+        , _expr = expr
+        }
 
 parseArgs :: Parser [String]
 parseArgs = do
