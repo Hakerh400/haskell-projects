@@ -42,10 +42,10 @@ data Eq a b where
   ZeroDef  :: Zero == K . (I)
   SucDef   :: Suc == S . D
   Induct   :: !(f Zero == r)
-           -> !(forall m. Nat m -> f m == r -> f ((Suc) . m) == r)
+           -> !(forall m. Nat m -> f m == r -> f (Suc . m) == r)
            -> !(Nat n) -> f n == r
 
 type Nat :: Comb -> Type
 data Nat a where
   NatZero :: Nat Zero
-  NatSuc  :: !(Nat n) -> Nat ((Suc) . n)
+  NatSuc  :: !(Nat n) -> Nat (Suc . n)
