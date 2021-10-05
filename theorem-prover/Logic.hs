@@ -23,7 +23,7 @@ type (.) = Call
 type I    = S . K . K
 type D    = S . (K . S) . K
 type F    = S . (D . D . S) . (K . K)
-type Zero = K . (I)
+type Zero = K . I
 type Suc  = S . D
 
 infix 4 ==
