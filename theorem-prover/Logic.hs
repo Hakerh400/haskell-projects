@@ -41,8 +41,8 @@ data Eq a b where
   Tran   :: forall a b c. a == b -> b == c -> a == c
   Cong   :: forall f g a b. f == g -> a == b -> f . a == g . b
   Ext    :: forall f g. (forall a. f . a == g . a) -> f == g
-  KDef   :: forall a b. (K . a) . b == a
-  SDef   :: forall a b c. ((S . a) . b) . c == a . c . (b . c)
+  KDef   :: forall a b. K . a . b == a
+  SDef   :: forall a b c. S . a . b . c == a . c . (b . c)
   Cont   :: forall a b. K == S -> a == b
   Induct :: forall f r n. f Zero == r
          -> (forall m. Nat m -> f m == r -> f (Suc . m) == r)
