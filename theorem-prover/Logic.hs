@@ -38,7 +38,7 @@ data Eq a b where
   KDef    :: forall a b. (K . a) . b == a
   SDef    :: forall a b c. ((S . a) . b) . c == a . c . (b . c)
   Cont    :: forall a b. K == S -> a == b
-  Induct  :: f Zero == r
+  Induct  :: forall f r n. f Zero == r
           -> (forall m. Nat m -> f m == r -> f (Suc . m) == r)
           -> Nat n -> f n == r
 
