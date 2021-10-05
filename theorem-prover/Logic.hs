@@ -37,6 +37,7 @@ data Eq a b where
   Ext     :: forall f g. !(forall a. f . a == g . a) -> f == g
   KDef    :: forall a b. (K . a) . b == a
   SDef    :: forall a b c. ((S . a) . b) . c == a . c . (b . c)
+  Cont    :: forall a b. !(K == S) -> a == b
   Induct  :: !(f Zero == r)
           -> !(forall m. Nat m -> f m == r -> f (Suc . m) == r)
           -> !(Nat n) -> f n == r
@@ -44,4 +45,5 @@ data Eq a b where
 type Nat :: Comb -> Type
 data Nat a where
   NatZero :: Nat Zero
-  NatSuc  :: !(Nat n) -> Nat (Suc . n)
+  NatSuc  :: forall n. !(Nat n) -> Nat (Suc . n)
+  NatTran :: forall n m. !(n == m) -> !(Nat n) -> Nat m

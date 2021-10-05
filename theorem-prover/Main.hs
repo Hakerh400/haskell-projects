@@ -47,6 +47,3 @@ type FI = F . I
 
 flip_id :: forall a b. FI . a . b == b . a
 flip_id = Refl `tr2` flip `tr2` fcong id
-
-u :: a
-u = P.undefined
