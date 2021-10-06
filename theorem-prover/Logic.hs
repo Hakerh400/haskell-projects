@@ -36,8 +36,14 @@ type Suc   = S . Dot
 type One   = Suc . Zero
 type False = Zero
 type True  = One
+type Not   = Flip . Imp . False
+type Neq   = Dot . (Dot . Not) . Eq
 
 type P :: F a -> Type
 data P a where
   PTrue :: P True
+  TFDif :: P (Neq . True . False)
+  AllI  :: (forall a. P (f . a)) -> P (All . f)
+  AllE  :: P (All . f) -> P (f . a)
   Refl  :: P (All . (S . Eq . Id))
+  Sub   :: P (All . (Dot . (S . (Dot . S . (Dot . Imp . Eq))) . (S . (Flip . (Dot . (Dot . Dot) . (Dot . Imp)) . Id))))
