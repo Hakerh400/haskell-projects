@@ -20,11 +20,15 @@ data Comb where
 infixl 9 .
 type (.) = Call
 
-type I    = S . K . K
-type D    = S . (K . S) . K
-type F    = S . (D . D . S) . (K . K)
-type Zero = K . I
-type Suc  = S . D
+type I      = S . K . K
+type D      = S . (K . S) . K
+type F      = S . (D . D . S) . (K . K)
+type Zero   = K . I
+type Suc    = S . D
+type True   = forall a. a == a
+type False  = K == S
+type Not a  = a -> False
+type a /= b = Not (a == b)
 
 type Nat :: Comb -> Type
 data Nat a where
@@ -32,8 +36,6 @@ data Nat a where
   NatSuc  :: forall n. Nat n -> Nat (Suc . n)
   NatTran :: forall n m. n == m -> Nat n -> Nat m
 
-infix 4 ==
-type (==) = Eq
 type Eq :: Comb -> Comb -> Type
 data Eq a b where
   Refl   :: forall a. a == a
@@ -43,7 +45,11 @@ data Eq a b where
   Ext    :: forall f g. (forall a. f . a == g . a) -> f == g
   KDef   :: forall a b. K . a . b == a
   SDef   :: forall a b c. S . a . b . c == a . c . (b . c)
-  Cont   :: forall a b. K == S -> a == b
+  Cont   :: forall a b. False -> a == b
   Induct :: forall f r n. f Zero == r
          -> (forall m. Nat m -> f m == r -> f (Suc . m) == r)
          -> Nat n -> f n == r
+
+infix 4 ==
+infix 4 /=
+type (==) = Eq
