@@ -8,8 +8,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE AllowAmbiguousTypes #-}
-{-# LANGUAGE UndecidableInstances #-}
+
+import Data.Kind
+
+import Prelude hiding (zipWith)
+
+-- zipWith :: forall f. f -> FuncArgs f
+-- zipWith f = countArgs
 
 main :: IO ()
-main = putStrLn "ok"
+main = do
+  -- print $ zipWith (,,) [1, 2, 3] [True, False] ["abc", "de"]

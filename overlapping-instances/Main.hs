@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 import Data.Kind
 
@@ -21,19 +22,19 @@ type family GetType a where
   GetType a = C
 
 class ShowVal a where
-  showVal :: a -> String
+  showVal :: String
 
 instance ShowVal A where
-  showVal = const "string"
+  showVal = "string"
 
 instance ShowVal B where
-  showVal = const "some list"
+  showVal = "some list"
 
 instance ShowVal C where
-  showVal = const "something other"
+  showVal = "something other"
 
 func :: forall a. (ShowVal (GetType a)) => a -> String
-func = const $ (showVal :: GetType a -> String) undefined
+func = const $ showVal @(GetType a)
 
 main :: IO ()
 main = do
