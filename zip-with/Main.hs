@@ -18,4 +18,5 @@ import Prelude hiding (zipWith)
 
 main :: IO ()
 main = do
+  print "ok"
   -- print $ zipWith (,,) [1, 2, 3] [True, False] ["abc", "de"]
