@@ -4,6 +4,7 @@
 {-# LANGUAGE StandaloneKindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Logic where
 
@@ -11,45 +12,32 @@ import Data.Kind
 
 import qualified Prelude as P
 
-type Comb :: Type
-data Comb where
-  K    :: Comb
-  S    :: Comb
-  Call :: Comb -> Comb -> Comb
-
 infixl 9 .
 type (.) = Call
 
-type I      = S . K . K
-type D      = S . (K . S) . K
-type F      = S . (D . D . S) . (K . K)
-type Zero   = K . I
-type Suc    = S . D
-type True   = forall a. a == a
-type False  = K == S
-type Not a  = a -> False
-type a /= b = Not (a == b)
+type Bool a = (a -> a) -> a -> a
 
-type Nat :: Comb -> Type
-data Nat a where
-  NatZero :: Nat Zero
-  NatSuc  :: forall n. Nat n -> Nat (Suc . n)
-  NatTran :: forall n m. n == m -> Nat n -> Nat m
+type F :: a -> Type
+data F a where
+  K    :: F (a -> b -> a)
+  S    :: F ((a -> b -> c) -> (a -> b) -> a -> c)
+  Call :: F (a -> b) -> F a -> F b
+  Eq   :: F (a -> a -> Bool b)
+  Nat  :: F (a -> Bool b)
+  All  :: F (a -> Bool b -> Bool c)
+  Imp  :: F (Bool a -> Bool b -> Bool c)
+  The  :: F (a -> Bool b -> a)
 
-type Eq :: Comb -> Comb -> Type
-data Eq a b where
-  Refl   :: forall a. a == a
-  Com    :: forall a b. a == b -> b == a
-  Tran   :: forall a b c. a == b -> b == c -> a == c
-  Cong   :: forall f g a b. f == g -> a == b -> f . a == g . b
-  Ext    :: forall f g. (forall a. f . a == g . a) -> f == g
-  KDef   :: forall a b. K . a . b == a
-  SDef   :: forall a b c. S . a . b . c == a . c . (b . c)
-  Cont   :: forall a b. False -> a == b
-  Induct :: forall f r n. f Zero == r
-         -> (forall m. Nat m -> f m == r -> f (Suc . m) == r)
-         -> Nat n -> f n == r
+type Id    = S . K . K
+type Dot   = S . (K . S) . K
+type Flip  = S . (Dot . Dot . S) . (K . K)
+type Zero  = K . Id
+type Suc   = S . Dot
+type One   = Suc . Zero
+type False = Zero
+type True  = One
 
-infix 4 ==
-infix 4 /=
-type (==) = Eq
+type P :: F a -> Type
+data P a where
+  PTrue :: P True
+  Refl  :: P (All . (S . Eq . Id))
