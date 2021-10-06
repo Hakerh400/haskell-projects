@@ -66,8 +66,8 @@ sk_a_id = let
 
 type FI = F . I
 
-flip_id :: forall a b. FI . a . b == b . a
-flip_id = flip >* congf id
+fi :: forall a b. FI . a . b == b . a
+fi = flip >* congf id
 
 type B0 = K . I
 type B1 = K
@@ -87,7 +87,7 @@ b0_neq_b1 b0_b1 = let
 type Iota = F . (FI . S) . K
 
 iota :: forall a. Iota . a == a . S . K
-iota = flip *< congf flip_id
+iota = flip *< congf fi
 
 iota_b0_k :: Iota . B0 == K
 iota_b0_k = iota *< b0
@@ -98,10 +98,10 @@ iota_b1_k = iota *< b1
 type NZ = F . (FI . (K . B1)) . B0
 
 nz :: forall n. NZ . n == n . (K . B1) . B0
-nz = flip *< congf flip_id
+nz = flip *< congf fi
 
 nz_0_b0 :: NZ . Zero == B0
-nz_0_b0 = flip >* congf flip_id >* congf KDef >* id
+nz_0_b0 = flip >* congf fi >* congf KDef >* id
 
 nz_suc_b1 :: forall n. NZ . (Suc . n) == B1
 nz_suc_b1 = nz *< congf SDef *< dot *< KDef
@@ -110,6 +110,30 @@ zero_neq_suc :: forall n. Zero /= Suc . n
 zero_neq_suc zero_suc = let
   b0_b1 = conga zero_suc *> nz_0_b0 >* nz_suc_b1 :: B0 == B1
   in b0_neq_b1 b0_b1
+
+infixr 3 &&
+type a && b = Not (a -> b -> False)
+
+infixr 2 ||
+type a || b = Not a -> Not b -> False
+
+-- notE :: forall a. Not (Not a) -> a
+-- notE nna = nna
+
+-- nz_b0_imp_z :: forall n. Nat n -> NZ . n == B0 -> n == Zero
+-- nz_b0_imp_z nNat nz_b0 = let
+--   in _
+
+type FI2 = D . F . FI
+
+fi2 :: forall a b c. FI2 . a . b . c == c . a . b
+fi2 = congf2 dot >* flip >* congf fi
+
+-- type NatId = FI2 . Suc . Zero
+-- 
+-- nat_id :: forall n. Nat n -> NatId . n == n
+-- nat_id nNat = let
+--   in Induct _ _ nNat
 
 -- suc_inj :: forall n m. Nat n -> Nat m -> Suc . n == Suc . m -> n == m
 -- suc_inj nNat mNat suc_eq = let
