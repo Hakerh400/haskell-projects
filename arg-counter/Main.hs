@@ -23,7 +23,7 @@ type family GetType a where
   GetType a = NonFunc
 
 class ArgCounter a where
-  cnt :: Integer
+  cnt :: N
 
 instance ArgCounter a => ArgCounter (Func a) where
   cnt = 1 + cnt @a
