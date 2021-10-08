@@ -12,7 +12,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-type family FGType t a b r where
+type family FGType a b r t where
   FGType a b r String = (String -> r) -> (a -> b) -> r
   FGType a b r t = (String -> a) -> (t -> r) -> r
 
