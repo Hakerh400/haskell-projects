@@ -3,8 +3,8 @@ module Logic
   , initCtx
   , apply
   
-  , identZero
-  , incIdent
+  , fstIdent
+  , nextIdent
   , mkImp
   , mkNot
   , ax1
@@ -66,8 +66,8 @@ apply :: Ctx -> [Rule] -> Ctx
 apply ctx [] = ctx
 apply ctx (rule:rules) = apply (rule ctx) rules
 
-identZero (Ctx a b) = Ctx a (Ident Zero : b)
-incIdent (Ctx a (Ident b : c)) = Ctx a (Ident (Suc b) : c)
+fstIdent (Ctx a b) = Ctx a (Ident Zero : b)
+nextIdent (Ctx a (Ident b : c)) = Ctx a (Ident (Suc b) : c)
 mkImp (Ctx a (b : c : d)) = Ctx a (Imp c b : d)
 mkNot (Ctx a (b : c)) = Ctx a (Not b : c)
 ax1 (Ctx a (b : c : d)) = Ctx (Proof (Imp c (Imp b c)) : a) d

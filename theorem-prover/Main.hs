@@ -5,9 +5,9 @@ main :: IO ()
 main = do
   print $ apply initCtx
     [ id
-    , identZero
-    , identZero
-    , incIdent
+    , fstIdent
+    , fstIdent
+    , nextIdent
     , ax3
     ]
 
