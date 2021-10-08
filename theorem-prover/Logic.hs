@@ -1,53 +1,75 @@
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE StandaloneKindSignatures #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PolyKinds #-}
+module Logic
+  ( Nat
+  , Context
+  , TypeDef
+  , ValDef
+  , Expr
+  , TypeExpr
+  , ValExpr
+  
+  , initCtx
+  ) where
 
-module Logic where
+import Data.Set (Set)
+import qualified Data.Set as Set
+import Data.Map (Map)
+import qualified Data.Map as Map
 
-import Data.Kind
+import Base
 
-import qualified Prelude as P
+type Nat = N
 
-infixl 9 .
-type (.) = Call
+data Context = MkContext
+  { context_idents    :: Map String (Bool, Nat)
+  , context_types     :: Map Nat TypeDef
+  , context_vals      :: Map Nat ValDef
+  , context_typeNames :: Map Nat String
+  , context_valNames  :: Map Nat String
+  } deriving (Eq, Show)
 
-type Bool a = (a -> a) -> a -> a
+data TypeDef = MkTypeDef
+  { typeDef_arity :: Nat
+  } deriving (Eq, Show)
 
-type F :: a -> Type
-data F a where
-  K    :: F (a -> b -> a)
-  S    :: F ((a -> b -> c) -> (a -> b) -> a -> c)
-  Call :: F (a -> b) -> F a -> F b
-  Eq   :: F (a -> a -> Bool b)
-  Nat  :: F (a -> Bool b)
-  Imp  :: F (Bool a -> Bool b -> Bool c)
-  All  :: F ((a -> Bool b) -> Bool c)
-  The  :: F ((a -> Bool b) -> a)
+data ValDef = MkValDef
+  { valDef_expr :: Expr
+  } deriving (Eq, Show)
 
-type Id    = S . K . K
-type Dot   = S . (K . S) . K
-type Flip  = S . (Dot . Dot . S) . (K . K)
-type Zero  = K . Id
-type Suc   = S . Dot
-type One   = Suc . Zero
-type False = Zero
-type True  = One
-type Not   = Flip . Imp . False
-type Neq   = Dot . (Dot . Not) . Eq
+data Expr = MkExpr
+  { expr_typesN :: Nat
+  , expr_valsN  :: Nat
+  , expr_types  :: Set Nat
+  , expr_vals   :: Set Nat
+  , expr_type   :: TypeExpr
+  , expr_val    :: ValExpr
+  } deriving (Eq, Show)
 
-type P :: F a -> Type
-data P a where
-  PTrue :: P True
-  TFDif :: P (Neq . True . False)
-  KDef  :: P (Eq . (K . a . b) . a)
-  SDef  :: P (Eq . (S . a . b . c) . (a . c . (b . c)))
-  AllI  :: (forall a. P (f . a)) -> P (All . f)
-  AllE  :: P (All . f) -> P (f . a)
-  Refl  :: P (All . (S . Eq . Id))
-  Sub   :: P (All . (Dot . (S . (Dot . S . (Dot . Imp . Eq))) . (S . (Flip . (Dot . (Dot . Dot) . (Dot . Imp)) . Id))))
-  Ext   :: P (All . (S . (Dot . S . (Dot . (Dot . Imp) . (Dot . (Dot . All) . (Dot . S . (Dot . Eq))))) . Eq))
-  TheAx :: P (All . (S . (Dot . Eq . (Dot . The . Eq)) . Id))
+data TypeExpr
+  = GlobType Nat
+  | LocType Nat
+  | CompType TypeExpr TypeExpr
+  deriving (Eq, Show)
+
+data ValExpr
+  = GlobVal Nat
+  | LocVal Nat
+  | CompVal Expr Expr
+  deriving (Eq, Show)
+
+initCtx :: Context
+initCtx = MkContext
+  { context_idents    = Map.empty
+  , context_types     = Map.empty
+  , context_vals      = Map.empty
+  , context_typeNames = Map.empty
+  , context_valNames  = Map.empty
+  }
+
+defType :: String -> Nat -> Context -> Context
+defType name arity ctx = assertNoDef name ctx $
+  ctx
+
+assertNoDef :: String -> Context -> a -> a
+assertNoDef name ctx = if name `Map.member` context_idents ctx
+  then err ["Identifier ", show name, " has already been defined"]
+  else id
