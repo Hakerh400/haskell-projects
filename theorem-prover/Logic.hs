@@ -1,7 +1,8 @@
 module Logic
   ( Nat
   , Sort
-  , Context
+  , Ctx
+  , InCtx
   , TypeDef
   , ValDef
   , Expr
@@ -26,13 +27,12 @@ data Sort
   | SortVal
   deriving (Eq, Show)
 
-data Context = MkContext
-  { context_idents    :: Map String (Sort, Nat)
-  , context_types     :: Map Nat TypeDef
-  , context_vals      :: Map Nat ValDef
-  , context_typeNames :: Map Nat String
-  , context_valNames  :: Map Nat String
+data Ctx = MkCtx
+  { context_types :: [TypeDef]
+  , context_vals  :: [ValDef]
   } deriving (Eq, Show)
+
+type InCtx a = (Ctx, a)
 
 data TypeDef = MkTypeDef
   { typeDef_arity :: Nat
@@ -63,28 +63,14 @@ data ValExpr
   | CompVal Expr Expr
   deriving (Eq, Show)
 
-initCtx :: Context
-initCtx = MkContext
-  { context_idents    = Map.empty
-  , context_types     = Map.empty
-  , context_vals      = Map.empty
-  , context_typeNames = Map.empty
-  , context_valNames  = Map.empty
+initCtx :: Ctx
+initCtx = MkCtx
+  { context_types = []
+  , context_vals  = []
   }
 
-defType :: String -> Nat -> Context -> Context
-defType name arity ctx = assertNoDef name ctx $ ctx
-  { context_idents = Map.insert
-    name (SortType, index) $ context_idents ctx
-  , context_types = Map.insert
-    index typeDef $ context_types ctx
-  , context_typeNames = Map.insert
-    index name $ context_typeNames ctx
+defType :: Nat -> Ctx -> Ctx
+defType arity ctx = ctx
+  { context_types = typeDef : context_types ctx
   } where
-    index = Map.size $ context_types ctx
     typeDef = MkTypeDef {typeDef_arity = arity}
-
-assertNoDef :: String -> Context -> a -> a
-assertNoDef name ctx = if name `Map.member` context_idents ctx
-  then err ["Identifier ", show name, " has already been defined"]
-  else id
