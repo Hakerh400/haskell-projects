@@ -1,5 +1,6 @@
 module Logic
   ( Nat
+  , Sort
   , Context
   , TypeDef
   , ValDef
@@ -8,6 +9,7 @@ module Logic
   , ValExpr
   
   , initCtx
+  , defType
   ) where
 
 import Data.Set (Set)
@@ -17,10 +19,15 @@ import qualified Data.Map as Map
 
 import Base
 
-type Nat = N
+type Nat = Int
+
+data Sort
+  = SortType
+  | SortVal
+  deriving (Eq, Show)
 
 data Context = MkContext
-  { context_idents    :: Map String (Bool, Nat)
+  { context_idents    :: Map String (Sort, Nat)
   , context_types     :: Map Nat TypeDef
   , context_vals      :: Map Nat ValDef
   , context_typeNames :: Map Nat String
@@ -66,8 +73,16 @@ initCtx = MkContext
   }
 
 defType :: String -> Nat -> Context -> Context
-defType name arity ctx = assertNoDef name ctx $
-  ctx
+defType name arity ctx = assertNoDef name ctx $ ctx
+  { context_idents = Map.insert
+    name (SortType, index) $ context_idents ctx
+  , context_types = Map.insert
+    index typeDef $ context_types ctx
+  , context_typeNames = Map.insert
+    index name $ context_typeNames ctx
+  } where
+    index = Map.size $ context_types ctx
+    typeDef = MkTypeDef {typeDef_arity = arity}
 
 assertNoDef :: String -> Context -> a -> a
 assertNoDef name ctx = if name `Map.member` context_idents ctx
