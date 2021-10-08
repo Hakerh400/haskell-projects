@@ -1,76 +1,75 @@
 module Logic
-  ( Nat
-  , Sort
-  , Ctx
-  , InCtx
-  , TypeDef
-  , ValDef
-  , Expr
-  , TypeExpr
-  , ValExpr
-  
+  ( Ctx
   , initCtx
-  , defType
+  , apply
+  
+  , identZero
+  , incIdent
+  , mkImp
+  , mkNot
+  , ax1
+  , ax2
+  , ax3
   ) where
 
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Map (Map)
-import qualified Data.Map as Map
+import Data.Char
 
 import Base
 
-type Nat = Int
+type Rule = Ctx -> Ctx
 
-data Sort
-  = SortType
-  | SortVal
-  deriving (Eq, Show)
+data Ctx = Ctx [Proof] [Expr]
+  deriving (Eq)
 
-data Ctx = MkCtx
-  { context_types :: [TypeDef]
-  , context_vals  :: [ValDef]
-  } deriving (Eq, Show)
+data Proof = Proof Expr
+   deriving (Eq)
 
-type InCtx a = (Ctx, a)
+data Expr
+  = Ident Nat
+  | Imp Expr Expr
+  | Not Expr
+  deriving (Eq)
 
-data TypeDef = MkTypeDef
-  { typeDef_arity :: Nat
-  } deriving (Eq, Show)
+data Nat
+  = Zero
+  | Suc Nat
+  deriving (Eq)
 
-data ValDef = MkValDef
-  { valDef_expr :: Expr
-  } deriving (Eq, Show)
+instance Show Ctx where
+  show (Ctx a b)
+    = trimRight
+    $ join "\n\n"
+    $ map (join "\n") [map show a, map show b]
 
-data Expr = MkExpr
-  { expr_typesN :: Nat
-  , expr_valsN  :: Nat
-  , expr_types  :: Set Nat
-  , expr_vals   :: Set Nat
-  , expr_type   :: TypeExpr
-  , expr_val    :: ValExpr
-  } deriving (Eq, Show)
+instance Show Proof where
+  show (Proof a) = show a
 
-data TypeExpr
-  = GlobType Nat
-  | LocType Nat
-  | CompType TypeExpr TypeExpr
-  deriving (Eq, Show)
+instance Show Expr where
+  show (Ident n) = [['A'..] !! nat2int n]
+  show (Imp a b) = concat [expr2str a, " -> ", show b]
+  show (Not a) = concat ["~", expr2str a]
 
-data ValExpr
-  = GlobVal Nat
-  | LocVal Nat
-  | CompVal Expr Expr
-  deriving (Eq, Show)
+expr2str :: Expr -> String
+expr2str a = case a of
+  Imp _ _ -> inParens s
+  _ -> s
+  where s = show a
+
+nat2int :: Nat -> Int
+nat2int Zero = 0
+nat2int (Suc n) = 1 + nat2int n
 
 initCtx :: Ctx
-initCtx = MkCtx
-  { context_types = []
-  , context_vals  = []
-  }
+initCtx = Ctx [] []
 
-defType :: Nat -> Ctx -> Ctx
-defType arity ctx = ctx
-  { context_types = typeDef : context_types ctx
-  } where
-    typeDef = MkTypeDef {typeDef_arity = arity}
+apply :: Ctx -> [Rule] -> Ctx
+apply ctx [] = ctx
+apply ctx (rule:rules) = apply (rule ctx) rules
+
+identZero (Ctx a b) = Ctx a (Ident Zero : b)
+incIdent (Ctx a (Ident b : c)) = Ctx a (Ident (Suc b) : c)
+mkImp (Ctx a (b : c : d)) = Ctx a (Imp c b : d)
+mkNot (Ctx a (b : c)) = Ctx a (Not b : c)
+ax1 (Ctx a (b : c : d)) = Ctx (Proof (Imp c (Imp b c)) : a) d
+ax2 (Ctx a (b : c : d : e)) = Ctx (Proof (Imp (Imp d (Imp c b)) (Imp (Imp d c) (Imp d b))) : a) e
+ax3 (Ctx a (b : c : d)) = Ctx (Proof (Imp (Imp (Not c) (Not b)) (Imp b c)) : a) d

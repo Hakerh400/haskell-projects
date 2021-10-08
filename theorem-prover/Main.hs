@@ -3,11 +3,13 @@ import Logic
 
 main :: IO ()
 main = do
-  ctx <- pure $ initCtx
-  ctx <- pure $ defType 2 ctx
-  ctx <- pure $ defType 0 ctx
-  ctx <- pure $ defType 0 ctx
-  print ctx
+  print $ apply initCtx
+    [ id
+    , identZero
+    , identZero
+    , incIdent
+    , ax3
+    ]
 
 u :: a
 u = undefined
