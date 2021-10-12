@@ -12,4 +12,4 @@ import List
 import String
 
 main :: String -> String
-main a = a
+main a = str_from_lit "Hello, World!"
