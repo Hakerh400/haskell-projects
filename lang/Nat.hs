@@ -3,22 +3,20 @@ module Nat
   , zero
   , suc
   , nat_exa
-  )
-  where
+  ) where
 
 import qualified Prelude as P
 
-import Base
-
-newtype Nat = Nat Base
+data Nat
+  = Zero
+  | Suc Nat
 
 zero :: Nat
-zero = Nat base_leaf
+zero = Zero
 
 suc :: Nat -> Nat
-suc (Nat n) = Nat (base_node base_leaf n)
+suc = Suc
 
 nat_exa :: (Nat -> a -> a) -> a -> Nat -> a
-nat_exa f z (Nat n) = base_exa func z n where
-  func _ r _ _ = f n (nat_exa f z n) where
-    n = Nat r
+nat_exa f z Zero = z
+nat_exa f z (Suc n) = f n (nat_exa f z n)

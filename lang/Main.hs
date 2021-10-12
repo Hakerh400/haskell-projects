@@ -1,33 +1,28 @@
 import Data.Char
 
-import Nat
-import List
-import qualified Program as P
+import qualified Nat
+import qualified List
+import qualified Char
+import qualified String
+import qualified Program
 
-inp :: String
-inp = "123 45"
-
-out :: String
-out = plist2str $ P.main $ str2plist inp
-
-str2plist :: String -> List Nat
-str2plist = foldr (\x xs -> cons (char2pnat x) xs) nil
-
-plist2str :: List Nat -> String
-plist2str = list_exa (\x _ xs -> pnat2char x : xs) []
-
-char2pnat :: Char -> Nat
-char2pnat = int2pnat . ord
-
-pnat2char :: Nat -> Char
-pnat2char = chr . pnat2int
-
-int2pnat :: Int -> Nat
-int2pnat 0 = zero
-int2pnat n = suc $ int2pnat $ n - 1
-
-pnat2int :: Nat -> Int
-pnat2int = nat_exa (\_ n -> n + 1) 0
+input :: String
+input = "123 45"
 
 main :: IO ()
-main = putStrLn out
+main = do
+  putStrLn $ str_to_hs $ Program.main $ str_from_hs $ input
+
+str_from_hs :: String -> String.String
+str_from_hs = foldr (List.cons . char_from_hs) List.nil
+
+str_to_hs :: String.String -> String
+str_to_hs = List.list_exa (\x -> const (char_to_hs x:)) []
+
+char_from_hs :: Char -> Char.Char
+char_from_hs = go . ord where
+  go 0 = Nat.zero
+  go n = Nat.suc $ go $ n - 1
+
+char_to_hs :: Char.Char -> Char
+char_to_hs = chr . Nat.nat_exa (const (+1)) 0

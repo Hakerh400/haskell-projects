@@ -2,12 +2,12 @@ module Pair
   ( Pair
   , pair
   , pair_exa
-  )
-  where
+  ) where
 
 import qualified Prelude as P
 
-data Pair a b = Pair a b
+data Pair a b
+  = Pair a b
 
 pair :: a -> b -> Pair a b
 pair = Pair
