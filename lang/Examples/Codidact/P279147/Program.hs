@@ -1,4 +1,4 @@
-module Program
+module Examples.Codidact.P279147.Program
   ( main
   ) where
 
