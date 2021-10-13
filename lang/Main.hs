@@ -38,6 +38,7 @@ run_tests prog [] = True
 run_tests prog (x:xs) = run_test prog x && run_tests prog xs
 
 run_test :: (Program p) => p -> ProgToPolyList p -> Bool
+run_test = undefined
 
 str_from_hs :: String -> String.String
 str_from_hs = String.str_lit
