@@ -1,0 +1,10 @@
+# Introduction
+
+The classic "Hello, World" challenge. What more can I say?
+
+# Rules
+
+- Program takes no input. 
+- Program outputs `Hello, World!` with an optional trailing newline. No other output is accepted. 
+
+Shortest submission in bytes wins.
